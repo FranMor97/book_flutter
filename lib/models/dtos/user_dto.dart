@@ -42,7 +42,7 @@ class UserDto {
     required this.birthDate,
     required this.registrationDate,
     this.role = 'client',
-    this.avatar,
+    this.avatar = '',
     this.token,
   });
 
@@ -119,5 +119,12 @@ class UserDto {
       birthDate: DateTime.now(),
       registrationDate: DateTime.now(),
     );
+  }
+
+  Map<String, dynamic> toJsonForRegistration() {
+    final json = toJson(); // Obtiene el JSON normal
+    json.remove('_id'); // Elimina el campo _id
+    json.remove('registrationDate');
+    return json;
   }
 }
