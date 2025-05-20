@@ -1,7 +1,15 @@
 import 'package:book_app_f/screens/login/views/login_screen.dart';
+import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../data/bloc/login_bloc.dart';
+import '../data/bloc/login_bloc/login_bloc.dart';
+import '../data/bloc/register_bloc/register_bloc.dart';
+import '../data/repositories/user_repository.dart';
+import '../injection.dart';
 
 /// Clase que configura y gestiona todas las rutas de la aplicación
 class AppRouter {
@@ -18,11 +26,13 @@ class AppRouter {
   // Definición de nombres de rutas para referencia más fácil
   static const String splash = 'splash';
   static const String login = 'login';
+  static const String register = 'register';
   static const String home = 'home';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
   static const String loginPath = '/login';
+  static const String registerPath = '/register';
   static const String homePath = '/';
 
   final _router = GoRouter(
@@ -38,7 +48,22 @@ class AppRouter {
       GoRoute(
         name: login,
         path: loginPath,
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => BlocProvider(
+          create: (context) => LoginBloc(
+            userRepository: getIt<UserRepository>(),
+          ),
+          child: const LoginScreen(),
+        ),
+      ),
+      GoRoute(
+        name: register,
+        path: registerPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => RegisterBloc(
+            userRepository: getIt<UserRepository>(),
+          ),
+          child: const RegisterScreen(),
+        ),
       ),
       GoRoute(
         name: home,
@@ -71,6 +96,12 @@ class AppRouter {
       ),
     ),
 
-    redirect: (BuildContext context, GoRouterState state) {},
+    // Implementación de redirect para manejar autenticación
+    redirect: (BuildContext context, GoRouterState state) {
+      // TODO: Implementar lógica de redirección basada en autenticación
+      // Por ejemplo, verificar si el usuario está autenticado
+      // y redirigir a login si está accediendo a rutas protegidas
+      return null; // Devuelve null para mantener la ruta actual
+    },
   );
 }
