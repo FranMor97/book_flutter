@@ -200,6 +200,7 @@ class ApiUserRepository implements UserRepository {
 }
 
 /// Clase para gestionar la caché
+@lazySingleton
 class CacheManager {
   static const String _userCacheKey = 'user_data';
 

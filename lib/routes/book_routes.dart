@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../data/bloc/login/login_bloc.dart'; // Usando la implementación correcta
+import '../data/bloc/login_bloc.dart';
+import '../data/bloc/login_bloc/login_bloc.dart';
 import '../data/bloc/register_bloc/register_bloc.dart';
 import '../data/repositories/user_repository.dart';
 import '../injection.dart';
