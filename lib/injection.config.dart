@@ -14,13 +14,15 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
-import 'data/Implementations/api_user_repository.dart' as _i654;
-import 'data/repositories/user_repository.dart' as _i443;
+import 'data/Implementations/dio_book_repository.dart' as _i940;
+import 'data/Implementations/dio_book_user.dart' as _i981;
+import 'data/repositories/book_repository.dart' as _i438;
+import 'data/repositories/book_user_repository.dart' as _i914;
 import 'injection/app_module.dart' as _i984;
 
 const String _dev = 'dev';
-const String _test = 'test';
 const String _prod = 'prod';
+const String _test = 'test';
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -44,8 +46,26 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'apiBaseUrl',
       registerFor: {_dev},
     );
-    gh.lazySingleton<_i654.CacheStore>(
-        () => _i654.SharedPrefsCacheStore(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i914.IBookUserRepository>(
+      () => _i981.DioBookUserRepository(
+        dio: gh<_i361.Dio>(),
+        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+      ),
+      registerFor: {
+        _dev,
+        _prod,
+      },
+    );
+    gh.lazySingleton<_i438.IBookRepository>(
+      () => _i940.DioBookRepository(
+        dio: gh<_i361.Dio>(),
+        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+      ),
+      registerFor: {
+        _dev,
+        _prod,
+      },
+    );
     gh.factory<String>(
       () => appModule.testApiBaseUrl,
       instanceName: 'apiBaseUrl',
@@ -55,19 +75,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.apiBaseUrl,
       instanceName: 'apiBaseUrl',
       registerFor: {_prod},
-    );
-    gh.lazySingleton<_i654.CacheManager>(
-        () => _i654.CacheManager(gh<_i654.CacheStore>()));
-    gh.lazySingleton<_i443.UserRepository>(
-      () => _i654.ApiUserRepository(
-        dio: gh<_i361.Dio>(),
-        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
-        cacheManager: gh<_i654.CacheManager>(),
-      ),
-      registerFor: {
-        _prod,
-        _dev,
-      },
     );
     return this;
   }

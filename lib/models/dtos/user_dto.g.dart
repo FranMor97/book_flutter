@@ -20,7 +20,7 @@ UserDto _$UserDtoFromJson(Map<String, dynamic> json) => UserDto(
       registrationDate:
           UserDto._dateTimeFromJson(json['registrationDate'] as String),
       role: json['role'] as String? ?? 'client',
-      avatar: json['avatar'] as String?,
+      avatar: json['avatar'] as String? ?? '',
     );
 
 Map<String, dynamic> _$UserDtoToJson(UserDto instance) => <String, dynamic>{

@@ -1,5 +1,4 @@
 import 'package:json_annotation/json_annotation.dart';
-import '../models/book_user.dart';
 
 part 'book_user_dto.g.dart';
 

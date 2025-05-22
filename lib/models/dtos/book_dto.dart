@@ -1,5 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
-import '../models/book.dart';
+
+import '../book.dart';
 
 part 'book_dto.g.dart';
 
