@@ -52,7 +52,7 @@ abstract class AppModule {
   /// Proporciona la URL base para la API en producción
   @Named("apiBaseUrl")
   @prod
-  String get apiBaseUrl => 'http://localhost:3000/api';
+  String get apiBaseUrl => 'http://192.168.1.14:3000/api';
 
   /// URL base para desarrollo
   @Named("apiBaseUrl")

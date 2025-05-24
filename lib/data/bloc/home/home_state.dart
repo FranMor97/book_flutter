@@ -21,12 +21,14 @@ class HomeLoaded extends HomeState {
   final UserReadingStats stats;
   final List<BookUserDto> recentlyFinished;
   final List<BookDto> recommendations;
+  final String? userId;
 
   const HomeLoaded({
     required this.currentlyReading,
     required this.stats,
     required this.recentlyFinished,
     required this.recommendations,
+    this.userId,
   });
 
   @override
@@ -35,6 +37,7 @@ class HomeLoaded extends HomeState {
         stats,
         recentlyFinished,
         recommendations,
+        userId,
       ];
 
   HomeLoaded copyWith({
@@ -48,6 +51,7 @@ class HomeLoaded extends HomeState {
       stats: stats ?? this.stats,
       recentlyFinished: recentlyFinished ?? this.recentlyFinished,
       recommendations: recommendations ?? this.recommendations,
+      userId: userId ?? this.userId,
     );
   }
 }

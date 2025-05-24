@@ -1,5 +1,6 @@
 // lib/data/bloc/home/home_bloc.dart
 import 'package:bloc/bloc.dart';
+import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
@@ -14,10 +15,12 @@ part 'home_state.dart';
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final IBookUserRepository bookUserRepository;
   final IBookRepository bookRepository;
+  final IAuthRepository iAuthRepository;
 
   HomeBloc({
     required this.bookUserRepository,
     required this.bookRepository,
+    required this.iAuthRepository,
   }) : super(HomeInitial()) {
     on<HomeLoadDashboard>(_onLoadDashboard);
     on<HomeRefreshDashboard>(_onRefreshDashboard);
@@ -31,11 +34,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     emit(HomeLoading());
 
     try {
+      final user = await iAuthRepository.getCurrentUserId();
       // Cargar datos en paralelo para mejor performance
       final results = await Future.wait([
-        _getCurrentlyReading(event.userId),
-        _getReadingStats(event.userId),
-        _getRecentlyFinished(event.userId),
+        _getCurrentlyReading(user!),
+        _getReadingStats(user),
+        _getRecentlyFinished(user),
         _getRecommendations(),
       ]);
 
@@ -49,6 +53,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         stats: stats,
         recentlyFinished: recentlyFinished,
         recommendations: recommendations,
+        userId: user,
       ));
     } catch (e) {
       emit(HomeError(message: e.toString()));

@@ -9,15 +9,15 @@ abstract class HomeEvent extends Equatable {
   List<Object> get props => [];
 }
 
-/// Evento para cargar el dashboard inicial
-class HomeLoadDashboard extends HomeEvent {
-  final String userId;
-
-  const HomeLoadDashboard({required this.userId});
-
-  @override
-  List<Object> get props => [userId];
-}
+class HomeLoadDashboard extends HomeEvent {}
+// class HomeLoadDashboard extends HomeEvent {
+//   // final String userId;
+//
+//   const HomeLoadDashboard({required this.userId});
+//
+//   @override
+//   List<Object> get props => [userId];
+// }
 
 /// Evento para refrescar datos del dashboard
 class HomeRefreshDashboard extends HomeEvent {

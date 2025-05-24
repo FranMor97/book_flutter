@@ -17,10 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar datos del dashboard
-    context
-        .read<HomeBloc>()
-        .add(const HomeLoadDashboard(userId: "user_id_here"));
+
+    context.read<HomeBloc>().add(HomeLoadDashboard());
   }
 
   @override
@@ -53,9 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
-                      onPressed: () => context
-                          .read<HomeBloc>()
-                          .add(const HomeLoadDashboard(userId: "user_id_here")),
+                      onPressed: () =>
+                          context.read<HomeBloc>().add(HomeLoadDashboard()),
                       child: const Text('Reintentar'),
                     ),
                   ],

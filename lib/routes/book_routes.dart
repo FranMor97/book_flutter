@@ -1,3 +1,4 @@
+import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
@@ -76,6 +77,7 @@ class AppRouter {
           create: (context) => HomeBloc(
             bookUserRepository: getIt<IBookUserRepository>(),
             bookRepository: getIt<IBookRepository>(),
+            iAuthRepository: getIt<IAuthRepository>(),
           ),
           child: const HomeScreen(),
         ),

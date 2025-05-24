@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
@@ -6,7 +8,13 @@ import 'injection.dart'; // Solo importa el archivo de inyección
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await configureDependencies(env: Environment.dev);
+  late String env;
+  if (Platform.isAndroid) {
+    env = Environment.prod;
+  } else {
+    env = Environment.dev;
+  }
+  await configureDependencies(env: env);
 
   runApp(const MyApp());
 }
