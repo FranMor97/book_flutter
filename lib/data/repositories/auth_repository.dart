@@ -1,3 +1,3 @@
-abstract class AuthRepository {
+abstract class IAuthRepository {
   Future<String?> getCurrentUserId();
 }

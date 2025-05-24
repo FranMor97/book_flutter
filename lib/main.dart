@@ -1,13 +1,12 @@
 import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:injectable/injectable.dart';
 import 'injection.dart'; // Solo importa el archivo de inyección
-
-const env = String.fromEnvironment('ENVIRONMENT', defaultValue: 'dev');
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await configureDependencies(env: env);
+  await configureDependencies(env: Environment.dev);
 
   runApp(const MyApp());
 }

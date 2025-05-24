@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'package:book_app_f/data/repositories/user_repository.dart';
+import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:dio/dio.dart';
+import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/dtos/user_dto.dart';
-import '../repositories/user_repository.dart';
 
 /// Implementación del repositorio de usuarios con API + caché local
-class ApiUserRepository implements UserRepository {
+@LazySingleton(as: IUserRepository, env: [Environment.dev, Environment.prod])
+class ApiUserRepository implements IUserRepository {
   final Dio _dio;
   final String _baseUrl;
   final CacheManager _cacheManager;
@@ -13,7 +15,7 @@ class ApiUserRepository implements UserRepository {
 
   ApiUserRepository({
     required Dio dio,
-    required String baseUrl,
+    @Named("apiBaseUrl") required String baseUrl,
     required CacheManager cacheManager,
   })  : _dio = dio,
         _baseUrl = baseUrl,

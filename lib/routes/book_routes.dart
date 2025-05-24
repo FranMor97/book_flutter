@@ -53,7 +53,7 @@ class AppRouter {
         path: loginPath,
         builder: (context, state) => BlocProvider(
           create: (context) => LoginBloc(
-            userRepository: getIt<UserRepository>(),
+            userRepository: getIt<IUserRepository>(),
           ),
           child: const LoginScreen(),
         ),
@@ -63,7 +63,7 @@ class AppRouter {
         path: registerPath,
         builder: (context, state) => BlocProvider(
           create: (context) => RegisterBloc(
-            userRepository: getIt<UserRepository>(),
+            userRepository: getIt<IUserRepository>(),
           ),
           child: const RegisterScreen(),
         ),

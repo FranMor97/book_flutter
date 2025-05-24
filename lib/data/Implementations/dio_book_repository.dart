@@ -1,7 +1,7 @@
+import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../models/dtos/book_dto.dart';
-import '../repositories/book_repository.dart';
 
 @LazySingleton(as: IBookRepository, env: [Environment.dev, Environment.prod])
 class DioBookRepository implements IBookRepository {

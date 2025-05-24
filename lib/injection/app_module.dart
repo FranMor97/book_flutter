@@ -1,56 +1,58 @@
+import 'package:book_app_f/data/Implementations/api_user_repository.dart';
+import 'package:book_app_f/data/Implementations/dio_auth_repository.dart';
+import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
-
-import '../data/Implementations/api_user_repository.dart';
-import '../data/Implementations/dio_auth_repository.dart';
-import '../data/repositories/auth_repository.dart';
-import '../data/repositories/user_repository.dart';
 
 /// Módulo para registrar dependencias externas
 @module
 abstract class AppModule {
   /// Proporciona una instancia de SharedPreferences
-  @preResolve // Importante para inicialización asíncrona
+  @preResolve
   Future<SharedPreferences> get sharedPreferences =>
       SharedPreferences.getInstance();
 
-  /// Proporciona una instancia básica de Dio
+  /// Proporciona una instancia de Dio con interceptor de autenticación
   @lazySingleton
-  Dio get dio => Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+  Dio dio(SharedPreferences prefs) {
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+
+    // Agregar interceptor para incluir el token en las peticiones
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final token = prefs.getString('auth_token');
+          if (token != null) {
+            options.headers['auth-token'] = token;
+          }
+          return handler.next(options);
         },
-      ));
-
-  @LazySingleton(as: UserRepository, env: [Environment.dev, Environment.prod])
-  UserRepository userRepository(
-    Dio dio,
-    @Named("apiBaseUrl") String baseUrl,
-    SharedPreferences sharedPreferences,
-  ) {
-    final cacheStore = SharedPrefsCacheStore(sharedPreferences);
-    final cacheManager = CacheManager(cacheStore);
-
-    return ApiUserRepository(
-      dio: dio,
-      baseUrl: baseUrl,
-      cacheManager: cacheManager,
+        onError: (error, handler) {
+          // Manejar errores de autenticación
+          if (error.response?.statusCode == 401) {
+            // Token expirado o inválido
+            prefs.remove('auth_token');
+          }
+          return handler.next(error);
+        },
+      ),
     );
+
+    return dio;
   }
 
-  @LazySingleton(as: AuthRepository)
-  AuthRepository authRepository(SharedPreferences sharedPreferences) {
-    return DioAuthRepository(sharedPreferences);
-  }
-
-  /// Proporciona la URL base para la API
+  /// Proporciona la URL base para la API en producción
   @Named("apiBaseUrl")
   @prod
-  String get apiBaseUrl => 'https://localhost:3000/api';
+  String get apiBaseUrl => 'http://localhost:3000/api';
 
   /// URL base para desarrollo
   @Named("apiBaseUrl")
@@ -61,4 +63,16 @@ abstract class AppModule {
   @Named("apiBaseUrl")
   @test
   String get testApiBaseUrl => 'http://localhost:3000/api';
+
+  // @LazySingleton(as: IAuthRepository)
+  // IAuthRepository authRepository(SharedPreferences sharedPreferences) {
+  //   return DioAuthRepository(sharedPreferences);
+  // }
+
+  @lazySingleton
+  CacheStore cacheStore(SharedPreferences prefs) =>
+      SharedPrefsCacheStore(prefs);
+
+  @lazySingleton
+  CacheManager cacheManager(CacheStore store) => CacheManager(store);
 }

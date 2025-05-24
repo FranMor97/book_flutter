@@ -9,7 +9,7 @@ part 'register_event.dart';
 part 'register_state.dart';
 
 class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
-  final UserRepository userRepository;
+  final IUserRepository userRepository;
 
   RegisterBloc({required this.userRepository}) : super(RegisterInitial()) {
     on<RegisterSubmitted>(_onRegisterSubmitted);

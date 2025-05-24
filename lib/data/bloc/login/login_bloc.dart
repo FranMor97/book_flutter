@@ -8,7 +8,7 @@ part 'login_event.dart';
 part 'login_state.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
-  final UserRepository userRepository;
+  final IUserRepository userRepository;
 
   LoginBloc({required this.userRepository}) : super(LoginInitial()) {
     on<LoginSubmitted>(_onLoginSubmitted);
