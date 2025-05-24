@@ -55,18 +55,56 @@ class DioBookRepository implements IBookRepository {
   @override
   Future<BookDto?> getBookById(String bookId) async {
     try {
+      print('📤 SOLICITANDO LIBRO POR ID: $bookId');
       final response = await _dio.get('$_baseUrl$_booksEndpoint/$bookId');
 
+      print('📥 RESPUESTA RECIBIDA [STATUS: ${response.statusCode}]');
+      print('📥 TIPO DE RESPONSE.DATA: ${response.data.runtimeType}');
+
       if (response.statusCode == 200 && response.data != null) {
-        return BookDto.fromJson(response.data);
+        // Verificar el tipo de respuesta y procesar adecuadamente
+        try {
+          if (response.data is Map) {
+            print('📥 PROCESANDO RESPONSE.DATA COMO MAP');
+
+            // Asegurarse de que estamos tratando con un Map<String, dynamic>
+            final Map<String, dynamic> bookData = {};
+
+            // Convertir manualmente los campos que necesitamos
+            (response.data as Map).forEach((key, value) {
+              if (value is Map) {
+                // Para campos anidados, convertirlos a Map<String, dynamic>
+                bookData[key.toString()] = Map<String, dynamic>.from(value);
+              } else if (value is List) {
+                // Para listas, asegurarse de que son List<dynamic>
+                bookData[key.toString()] = List<dynamic>.from(value);
+              } else {
+                // Para tipos simples, usarlos directamente
+                bookData[key.toString()] = value;
+              }
+            });
+
+            print('📥 MAPA PROCESADO: ${bookData.keys}');
+            return BookDto.fromJson(bookData);
+          } else {
+            print('📥 ERROR: RESPONSE.DATA NO ES UN MAP');
+            throw Exception('El formato de respuesta no es un Map');
+          }
+        } catch (e) {
+          print('📥 ERROR AL PROCESAR RESPONSE.DATA: $e');
+          throw Exception('Error al procesar datos del libro: $e');
+        }
       }
       return null;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return null;
       }
+      print('📥 ERROR DIO: ${e.message}');
+      print('📥 RESPONSE: ${e.response?.data}');
       throw _handleDioException(e);
     } catch (e) {
+      print('📥 ERROR GENERAL: $e');
       throw Exception('Error al obtener libro: ${e.toString()}');
     }
   }

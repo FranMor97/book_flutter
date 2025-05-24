@@ -80,21 +80,43 @@ class DioBookUserRepository implements IBookUserRepository {
     String status = 'to-read',
   }) async {
     try {
-      final bookUserDto = BookUserDto.forNewReading(
-        userId: userId,
-        bookId: bookId,
-        status: status,
-      );
+      // Crear un objeto simplificado para la creación
+      final data = {
+        'userId': userId,
+        'bookId': bookId,
+        'status': status,
+      };
 
+      // Realizar la petición y obtener la respuesta
       final response = await _dio.post(
         '$_baseUrl$_bookUsersEndpoint',
-        data: bookUserDto.toJsonForCreation(),
+        data: data,
       );
 
-      return BookUserDto.fromJson(response.data['data']);
+      // Imprimir la respuesta para depuración
+      print(
+          'Respuesta del servidor (status: ${response.statusCode}): ${response.data}');
+
+      // Verificar si la respuesta tiene la estructura esperada
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        // Si la respuesta tiene el formato esperado: { data: { ... } }
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        // Si la respuesta es directamente un objeto JSON
+        return BookUserDto.fromJson(response.data);
+      } else {
+        // Si la respuesta tiene otro formato, lanzar un error
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
     } on DioException catch (e) {
+      print('Error DIO: ${e.message}');
+      print('Response data: ${e.response?.data}');
+      print('Status code: ${e.response?.statusCode}');
       throw _handleDioException(e);
     } catch (e) {
+      print('Error general: ${e.toString()}');
       throw Exception('Error al agregar libro al usuario: ${e.toString()}');
     }
   }
@@ -135,7 +157,16 @@ class DioBookUserRepository implements IBookUserRepository {
         data: updateData,
       );
 
-      return BookUserDto.fromJson(response.data['data']);
+      // Verificar la estructura de la respuesta
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -154,7 +185,16 @@ class DioBookUserRepository implements IBookUserRepository {
         data: review.toJson(),
       );
 
-      return BookUserDto.fromJson(response.data['data']);
+      // Verificar la estructura de la respuesta
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -173,7 +213,16 @@ class DioBookUserRepository implements IBookUserRepository {
         data: note.toJson(),
       );
 
-      return BookUserDto.fromJson(response.data['data']);
+      // Verificar la estructura de la respuesta
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -192,7 +241,16 @@ class DioBookUserRepository implements IBookUserRepository {
         data: {'readingGoal': goal.toJson()},
       );
 
-      return BookUserDto.fromJson(response.data['data']);
+      // Verificar la estructura de la respuesta
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -229,7 +287,9 @@ class DioBookUserRepository implements IBookUserRepository {
   /// Maneja las excepciones de Dio
   Exception _handleDioException(DioException e) {
     final statusCode = e.response?.statusCode;
-    final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+    final errorMessage = e.response?.data is Map
+        ? e.response?.data['error'] ?? 'Error desconocido'
+        : 'Error desconocido';
 
     switch (statusCode) {
       case 400:

@@ -6,7 +6,6 @@ import 'package:injectable/injectable.dart';
 import 'package:meta/meta.dart';
 
 import '../../../models/dtos/book_dto.dart';
-import '../../../models/dtos/book_user_dto.dart';
 import '../../repositories/auth_repository.dart';
 import '../../repositories/book_repository.dart';
 import '../../repositories/book_user_repository.dart';
@@ -45,32 +44,54 @@ class BookDetailBloc extends Bloc<BookDetailEvent, BookDetailState> {
       }
 
       // Obtener detalles del libro
-      final book = await bookRepository.getBookById(event.bookId);
-      if (book == null) {
-        emit(BookDetailError(message: 'Libro no encontrado'));
-        return;
+      try {
+        print('🔍 Solicitando libro con ID: ${event.bookId}');
+        final book = await bookRepository.getBookById(event.bookId);
+        if (book == null) {
+          emit(BookDetailError(message: 'Libro no encontrado'));
+          return;
+        }
+        print('✅ Libro obtenido exitosamente: ${book.title}');
+
+        // Verificar si el libro está en la biblioteca del usuario
+        try {
+          print(
+              '🔍 Verificando si el libro está en la biblioteca del usuario $userId');
+          final userBook = await bookUserRepository.getUserBook(
+            userId: userId,
+            bookId: event.bookId,
+          );
+
+          // Crear estado simplificado del libro en la biblioteca
+          final userBookStatus = userBook != null
+              ? UserBookStatus(
+                  id: userBook.id!,
+                  status: userBook.status,
+                  currentPage: userBook.currentPage,
+                )
+              : null;
+          print(
+              '✅ Verificación completada: ${userBook != null ? 'Libro en biblioteca' : 'Libro no en biblioteca'}');
+
+          emit(BookDetailLoaded(
+            book: book,
+            userBook: userBookStatus,
+          ));
+        } catch (e) {
+          print('❌ Error al verificar libro en biblioteca: $e');
+          // Si hay error al verificar la biblioteca, al menos mostrar el libro
+          emit(BookDetailLoaded(
+            book: book,
+            userBook: null,
+          ));
+        }
+      } catch (e) {
+        print('❌ Error al obtener libro: $e');
+        emit(BookDetailError(
+            message: 'Error al obtener detalles del libro: $e'));
       }
-
-      // Verificar si el libro está en la biblioteca del usuario
-      final userBook = await bookUserRepository.getUserBook(
-        userId: userId,
-        bookId: event.bookId,
-      );
-
-      // Crear estado simplificado del libro en la biblioteca
-      final userBookStatus = userBook != null
-          ? UserBookStatus(
-              id: userBook.id!,
-              status: userBook.status,
-              currentPage: userBook.currentPage,
-            )
-          : null;
-
-      emit(BookDetailLoaded(
-        book: book,
-        userBook: userBookStatus,
-      ));
     } catch (e) {
+      print('❌ Error general: $e');
       emit(BookDetailError(message: e.toString()));
     }
   }

@@ -1,10 +1,9 @@
-// lib/screens/explore/explore_screen.dart
+// lib/screens/search_books/explore_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/bloc/book_library/book_library_bloc.dart';
 import '../../models/dtos/book_dto.dart';
-import 'book_detail.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -15,6 +14,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   final _searchController = TextEditingController();
+  String? _selectedGenre;
 
   @override
   void initState() {
@@ -72,6 +72,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   }
 
                   if (state is BookLibraryLoaded) {
+                    // Actualizar el género seleccionado basado en el estado
+                    if (state.currentGenre != null && _selectedGenre == null) {
+                      _selectedGenre = state.currentGenre;
+                    } else if (state.currentGenre == null) {
+                      _selectedGenre = null;
+                    }
+
                     return _buildBookGrid(state.books);
                   }
 
@@ -110,10 +117,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
         ),
         onSubmitted: (query) {
           if (query.isNotEmpty) {
+            setState(() {
+              _selectedGenre = null; // Limpiar género seleccionado al buscar
+            });
             context
                 .read<BookLibraryBloc>()
                 .add(BookLibrarySearchBooks(query: query));
           } else {
+            setState(() {
+              _selectedGenre = null;
+            });
             context.read<BookLibraryBloc>().add(BookLibraryClearFilters());
           }
         },
@@ -135,37 +148,50 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return SizedBox(
       height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemBuilder: (context, index) {
-          final isSelected =
-              index == 0; // Por defecto "Todos" está seleccionado
+      child: BlocBuilder<BookLibraryBloc, BookLibraryState>(
+        builder: (context, state) {
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemBuilder: (context, index) {
+              final category = categories[index];
+              // Establecer selección para 'Todos' cuando no hay género seleccionado
+              final isSelected = index == 0
+                  ? _selectedGenre == null
+                  : category == _selectedGenre;
 
-          return Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              selected: isSelected,
-              label: Text(categories[index]),
-              onSelected: (selected) {
-                if (index == 0) {
-                  context
-                      .read<BookLibraryBloc>()
-                      .add(BookLibraryClearFilters());
-                } else {
-                  context
-                      .read<BookLibraryBloc>()
-                      .add(BookLibraryFilterByGenre(genre: categories[index]));
-                }
-              },
-              backgroundColor: const Color(0xFF1A1A2E),
-              selectedColor: const Color(0xFF8B5CF6),
-              checkmarkColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey,
-              ),
-            ),
+              return Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  selected: isSelected,
+                  label: Text(category),
+                  onSelected: (selected) {
+                    if (index == 0) {
+                      setState(() {
+                        _selectedGenre = null;
+                      });
+                      context
+                          .read<BookLibraryBloc>()
+                          .add(BookLibraryClearFilters());
+                    } else {
+                      setState(() {
+                        _selectedGenre = category;
+                      });
+                      context
+                          .read<BookLibraryBloc>()
+                          .add(BookLibraryFilterByGenre(genre: category));
+                    }
+                  },
+                  backgroundColor: const Color(0xFF1A1A2E),
+                  selectedColor: const Color(0xFF8B5CF6),
+                  checkmarkColor: Colors.white,
+                  labelStyle: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey,
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -173,27 +199,63 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildBookGrid(List<BookDto> books) {
-    return books.isEmpty
-        ? const Center(
-            child: Text(
-              'No se encontraron libros',
-              style: TextStyle(color: Colors.white),
+    if (books.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.menu_book_outlined,
+              size: 60,
+              color: Color(0xFF8B5CF6),
             ),
-          )
-        : GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.7,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+            const SizedBox(height: 16),
+            Text(
+              _selectedGenre != null
+                  ? 'No se encontraron libros de ${_selectedGenre}'
+                  : 'No se encontraron libros con estos criterios',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
             ),
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              return _buildBookCard(book);
-            },
-          );
+            const SizedBox(height: 24),
+            OutlinedButton(
+              onPressed: () {
+                setState(() {
+                  _selectedGenre = null;
+                  _searchController.clear();
+                });
+                context.read<BookLibraryBloc>().add(BookLibraryLoadBooks());
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF8B5CF6),
+                side: const BorderSide(color: Color(0xFF8B5CF6)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Ver todos los libros'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.7,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+        ),
+        itemCount: books.length,
+        itemBuilder: (context, index) {
+          final book = books[index];
+          return _buildBookCard(book);
+        },
+      );
+    }
   }
 
   Widget _buildBookCard(BookDto book) {

@@ -289,10 +289,14 @@ class BookUserDto {
 
   // Método para convertir a JSON para crear un nuevo registro
   Map<String, dynamic> toJsonForCreation() {
-    final json = toJson();
-    json.remove('_id'); // Elimina el ID ya que MongoDB lo generará
-    json.remove(
-        'lastUpdated'); // La fecha se actualizará en el middleware del servidor
-    return json;
+    // Solo incluir los campos mínimos necesarios para la creación
+    return {
+      'userId': userId,
+      'bookId': bookId,
+      'status': status,
+      'currentPage': currentPage,
+      'startDate': startDate?.toIso8601String(),
+      // Excluir los campos reviews, notes, readingGoal y otros que puedan causar problemas
+    };
   }
 }
