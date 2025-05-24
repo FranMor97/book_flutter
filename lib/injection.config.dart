@@ -14,6 +14,7 @@ import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
+import 'data/bloc/book_detail/book_detail_bloc.dart' as _i21;
 import 'data/Implementations/api_user_repository.dart' as _i654;
 import 'data/Implementations/dio_auth_repository.dart' as _i506;
 import 'data/Implementations/dio_book_repository.dart' as _i940;
@@ -75,6 +76,11 @@ extension GetItInjectableX on _i174.GetIt {
         _prod,
       },
     );
+    gh.factory<_i21.BookDetailBloc>(() => _i21.BookDetailBloc(
+          bookRepository: gh<_i438.IBookRepository>(),
+          bookUserRepository: gh<_i914.IBookUserRepository>(),
+          authRepository: gh<_i593.IAuthRepository>(),
+        ));
     gh.factory<String>(
       () => appModule.testApiBaseUrl,
       instanceName: 'apiBaseUrl',

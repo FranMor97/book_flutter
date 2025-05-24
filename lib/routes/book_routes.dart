@@ -1,48 +1,55 @@
-import 'package:book_app_f/data/repositories/auth_repository.dart';
+// lib/routes/book_routes.dart
+import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
+import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
+import 'package:book_app_f/data/bloc/home/home_bloc.dart'; // Añadido
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
+import 'package:book_app_f/screens/home_screen/home_screen.dart'; // Añadido
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/bloc/login/login_bloc.dart';
 import '../data/bloc/register_bloc/register_bloc.dart';
-import '../data/bloc/home/home_bloc.dart'; // NUEVA IMPORTACIÓN
+import '../data/repositories/auth_repository.dart'; // Añadido
+import '../data/repositories/book_repository.dart'; // Añadido
 import '../data/repositories/user_repository.dart';
-import '../data/repositories/book_repository.dart'; // NUEVA IMPORTACIÓN
-import '../data/repositories/book_user_repository.dart'; // NUEVA IMPORTACIÓN
+import '../data/repositories/book_user_repository.dart'; // Añadido
 import '../injection.dart';
-import '../screens/home_screen/home_screen.dart';
+import '../screens/search_books/book_detail.dart';
+import '../screens/search_books/explore_screen.dart';
 
-/// Clase que configura y gestiona todas las rutas de la aplicación
 class AppRouter {
-  // Singleton pattern
   static final AppRouter _instance = AppRouter._internal();
 
   factory AppRouter() => _instance;
 
   AppRouter._internal();
 
-  // Getter para obtener la configuración del router
   GoRouter get router => _router;
 
-  // Definición de nombres de rutas para referencia más fácil
+  // Definición de nombres de rutas
   static const String splash = 'splash';
   static const String login = 'login';
   static const String register = 'register';
   static const String home = 'home';
+  static const String explore = 'explore';
+  static const String bookDetail = 'book-detail';
+  static const String main = 'main';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
   static const String loginPath = '/login';
   static const String registerPath = '/register';
-  static const String homePath = '/';
+  static const String homePath = '/home';
+  static const String explorePath = '/explore';
+  static const String bookDetailPath = '/book/:id';
+  static const String mainPath = '/';
 
   final _router = GoRouter(
     initialLocation: splashPath,
-    debugLogDiagnostics: true, // Útil durante el desarrollo
-
+    debugLogDiagnostics: true,
     routes: [
       GoRoute(
         name: splash,
@@ -69,7 +76,7 @@ class AppRouter {
           child: const RegisterScreen(),
         ),
       ),
-      // NUEVA RUTA HOME CON HOMEBLOC
+      // Añadir la ruta 'home' que falta
       GoRoute(
         name: home,
         path: homePath,
@@ -78,12 +85,34 @@ class AppRouter {
             bookUserRepository: getIt<IBookUserRepository>(),
             bookRepository: getIt<IBookRepository>(),
             iAuthRepository: getIt<IAuthRepository>(),
-          ),
+          )..add(HomeLoadDashboard()),
           child: const HomeScreen(),
         ),
       ),
+      // Ruta para explorar libros
+      GoRoute(
+        name: explore,
+        path: explorePath,
+        builder: (context, state) => BlocProvider(
+          create: (context) =>
+              BookLibraryBloc(bookRepository: getIt<IBookRepository>())
+                ..add(BookLibraryLoadBooks()),
+          child: const ExploreScreen(),
+        ),
+      ),
+      // Ruta para detalles de libro
+      GoRoute(
+        name: bookDetail,
+        path: bookDetailPath,
+        builder: (context, state) {
+          final bookId = state.pathParameters['id']!;
+          return BlocProvider(
+            create: (context) => getIt<BookDetailBloc>(),
+            child: BookDetailScreen(bookId: bookId),
+          );
+        },
+      ),
     ],
-
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(
         title: const Text('Página no encontrada'),
@@ -100,20 +129,16 @@ class AppRouter {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go(homePath),
+              onPressed: () => context.go(mainPath),
               child: const Text('Ir al inicio'),
             ),
           ],
         ),
       ),
     ),
-
-    // Implementación de redirect para manejar autenticación
     redirect: (BuildContext context, GoRouterState state) {
-      // TODO: Implementar lógica de redirección basada en autenticación
-      // Por ejemplo, verificar si el usuario está autenticado
-      // y redirigir a login si está accediendo a rutas protegidas
-      return null; // Devuelve null para mantener la ruta actual
+      // Implementar lógica de redirección basada en autenticación
+      return null;
     },
   );
 }

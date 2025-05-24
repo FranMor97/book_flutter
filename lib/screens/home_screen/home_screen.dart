@@ -1,6 +1,7 @@
 // lib/screens/home/views/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../data/bloc/home/home_bloc.dart';
 import '../../../models/dtos/book_user_dto.dart';
 import '../../../models/dtos/book_dto.dart';
@@ -308,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton.icon(
               onPressed: () {
-                // Agregar nuevo libro
+                context.pushNamed('explore');
               },
               icon: const Icon(Icons.add, color: Color(0xFF8B5CF6)),
               label: const Text(
