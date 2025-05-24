@@ -2,6 +2,11 @@ import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 
+import '../data/Implementations/api_user_repository.dart';
+import '../data/Implementations/dio_auth_repository.dart';
+import '../data/repositories/auth_repository.dart';
+import '../data/repositories/user_repository.dart';
+
 /// Módulo para registrar dependencias externas
 @module
 abstract class AppModule {
@@ -20,6 +25,27 @@ abstract class AppModule {
           'Accept': 'application/json',
         },
       ));
+
+  @LazySingleton(as: UserRepository, env: [Environment.dev, Environment.prod])
+  UserRepository userRepository(
+    Dio dio,
+    @Named("apiBaseUrl") String baseUrl,
+    SharedPreferences sharedPreferences,
+  ) {
+    final cacheStore = SharedPrefsCacheStore(sharedPreferences);
+    final cacheManager = CacheManager(cacheStore);
+
+    return ApiUserRepository(
+      dio: dio,
+      baseUrl: baseUrl,
+      cacheManager: cacheManager,
+    );
+  }
+
+  @LazySingleton(as: AuthRepository)
+  AuthRepository authRepository(SharedPreferences sharedPreferences) {
+    return DioAuthRepository(sharedPreferences);
+  }
 
   /// Proporciona la URL base para la API
   @Named("apiBaseUrl")

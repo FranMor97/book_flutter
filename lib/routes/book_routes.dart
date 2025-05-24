@@ -7,8 +7,12 @@ import 'package:go_router/go_router.dart';
 
 import '../data/bloc/login/login_bloc.dart';
 import '../data/bloc/register_bloc/register_bloc.dart';
+import '../data/bloc/home/home_bloc.dart'; // NUEVA IMPORTACIÓN
 import '../data/repositories/user_repository.dart';
+import '../data/repositories/book_repository.dart'; // NUEVA IMPORTACIÓN
+import '../data/repositories/book_user_repository.dart'; // NUEVA IMPORTACIÓN
 import '../injection.dart';
+import '../screens/home_screen/home_screen.dart';
 
 /// Clase que configura y gestiona todas las rutas de la aplicación
 class AppRouter {
@@ -64,10 +68,17 @@ class AppRouter {
           child: const RegisterScreen(),
         ),
       ),
+      // NUEVA RUTA HOME CON HOMEBLOC
       GoRoute(
         name: home,
         path: homePath,
-        builder: (context, state) => const Placeholder(),
+        builder: (context, state) => BlocProvider(
+          create: (context) => HomeBloc(
+            bookUserRepository: getIt<IBookUserRepository>(),
+            bookRepository: getIt<IBookRepository>(),
+          ),
+          child: const HomeScreen(),
+        ),
       ),
     ],
 
