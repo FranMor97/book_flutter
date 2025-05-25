@@ -61,7 +61,7 @@ class ReadingGoal {
 class BookUser {
   final String? id;
   final String userId;
-  final String bookId;
+  final Book bookId;
   final String status;
   final int currentPage;
   final DateTime? startDate;
@@ -104,7 +104,7 @@ class BookUser {
     return BookUser(
       id: dto.id,
       userId: dto.userId,
-      bookId: dto.bookId,
+      bookId: dto.bookId.toBook(),
       status: dto.status,
       currentPage: dto.currentPage,
       startDate: dto.startDate,

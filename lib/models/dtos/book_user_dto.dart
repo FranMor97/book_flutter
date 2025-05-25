@@ -1,3 +1,4 @@
+import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'book_user_dto.g.dart';
@@ -159,7 +160,7 @@ class BookUserDto {
   final String userId;
 
   @JsonKey(name: 'bookId')
-  final String bookId;
+  final BookDto bookId; // CAMBIO: Ahora es BookDto en lugar de String
 
   @JsonKey(name: 'status')
   final String status;
@@ -204,7 +205,7 @@ class BookUserDto {
   BookUserDto({
     this.id,
     required this.userId,
-    required this.bookId,
+    required this.bookId, // Ahora recibe BookDto
     this.status = 'to-read',
     this.currentPage = 0,
     this.startDate,
@@ -240,7 +241,7 @@ class BookUserDto {
   // Factory para crear un nuevo registro de lectura
   factory BookUserDto.forNewReading({
     required String userId,
-    required String bookId,
+    required BookDto bookId, // Cambio: ahora recibe BookDto
     String status = 'to-read',
   }) {
     return BookUserDto(
@@ -255,7 +256,7 @@ class BookUserDto {
   factory BookUserDto.forStatusUpdate({
     required String id,
     required String userId,
-    required String bookId,
+    required BookDto bookId, // Cambio: ahora recibe BookDto
     required String status,
     int? currentPage,
     DateTime? finishDate,
@@ -274,7 +275,7 @@ class BookUserDto {
   factory BookUserDto.forAddReview({
     required String id,
     required String userId,
-    required String bookId,
+    required BookDto bookId, // Cambio: ahora recibe BookDto
     required ReviewDto review,
   }) {
     return BookUserDto(
@@ -289,14 +290,40 @@ class BookUserDto {
 
   // Método para convertir a JSON para crear un nuevo registro
   Map<String, dynamic> toJsonForCreation() {
-    // Solo incluir los campos mínimos necesarios para la creación
     return {
       'userId': userId,
-      'bookId': bookId,
+      'bookId': bookId.id, // IMPORTANTE: Usar solo el ID del libro
       'status': status,
       'currentPage': currentPage,
       'startDate': startDate?.toIso8601String(),
-      // Excluir los campos reviews, notes, readingGoal y otros que puedan causar problemas
+      'personalRating': personalRating,
+      'isPrivate': isPrivate,
+      'shareProgress': shareProgress,
     };
   }
+
+  // Método para convertir a JSON para actualizaciones
+  Map<String, dynamic> toJsonForUpdate() {
+    return {
+      'userId': userId,
+      'bookId': bookId.id, // IMPORTANTE: Usar solo el ID del libro
+      'status': status,
+      'currentPage': currentPage,
+      'startDate': startDate?.toIso8601String(),
+      'finishDate': finishDate?.toIso8601String(),
+      'personalRating': personalRating,
+      'isPrivate': isPrivate,
+      'shareProgress': shareProgress,
+      'lastUpdated': lastUpdated.toIso8601String(),
+    };
+  }
+
+  // Método de conveniencia para obtener el ID del libro
+  String get bookIdString => bookId.id ?? '';
+
+  // Método de conveniencia para obtener el título del libro
+  String get bookTitle => bookId.title;
+
+  // Método de conveniencia para obtener los autores del libro
+  List<String> get bookAuthors => bookId.authors;
 }

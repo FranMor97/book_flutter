@@ -1,4 +1,5 @@
 // lib/data/implementations/dio_book_user_repository.dart
+import 'package:book_app_f/models/book_user_creation_dto.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../models/dtos/book_user_dto.dart';
@@ -53,6 +54,7 @@ class DioBookUserRepository implements IBookUserRepository {
     required String userId,
     required String bookId,
   }) async {
+    final url = '$_baseUrl$_bookUsersEndpoint/user/$userId/book/$bookId';
     try {
       final response = await _dio.get(
         '$_baseUrl$_bookUsersEndpoint/user/$userId/book/$bookId',
@@ -81,12 +83,10 @@ class DioBookUserRepository implements IBookUserRepository {
   }) async {
     try {
       // Crear un objeto simplificado para la creación
-      final data = {
-        'userId': userId,
-        'bookId': bookId,
-        'status': status,
-      };
-
+      final creationDto = BookUserCreationDto.forNewReading(
+          userId: userId, bookId: bookId, status: status);
+      final data = creationDto.toJsonForCreation();
+      final url = '$_baseUrl$_bookUsersEndpoint';
       // Realizar la petición y obtener la respuesta
       final response = await _dio.post(
         '$_baseUrl$_bookUsersEndpoint',

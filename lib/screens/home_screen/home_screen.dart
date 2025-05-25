@@ -1,11 +1,11 @@
 // lib/screens/home/views/home_screen.dart
+import 'package:book_app_f/data/repositories/book_user_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/bloc/home/home_bloc.dart';
 import '../../../models/dtos/book_user_dto.dart';
 import '../../../models/dtos/book_dto.dart';
-import '../../data/repositories/book_user_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             Text(
-                              '¡Hola, Francisco!',
+                              '¡Hola, Lector!',
                               style: TextStyle(
                                 color: Colors.grey,
                                 fontSize: 12,
@@ -118,31 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       IconButton(
                         icon: const Icon(Icons.search, color: Colors.white),
                         onPressed: () {
-                          // Navegar a búsqueda
+                          context.pushNamed('explore');
                         },
-                      ),
-                      Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_outlined,
-                                color: Colors.white),
-                            onPressed: () {
-                              // Mostrar notificaciones
-                            },
-                          ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                       IconButton(
                         icon: const Icon(Icons.person_outline,
@@ -163,16 +140,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildStatsSection(state.stats),
                         const SizedBox(height: 24),
 
-                        // Libros en progreso
-                        _buildCurrentlyReadingSection(state.currentlyReading),
+                        // Mi biblioteca (antes "Libros en progreso")
+                        _buildMyLibrarySection(context, state.currentlyReading),
                         const SizedBox(height: 24),
 
                         // Objetivos de lectura
-                        _buildReadingGoalsSection(),
-                        const SizedBox(height: 24),
-
-                        // Acciones rápidas
-                        _buildQuickActionsSection(),
+                        _buildReadingGoalsSection(state.stats),
                         const SizedBox(height: 24),
 
                         // Recomendaciones
@@ -292,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCurrentlyReadingSection(List<BookUserDto> currentlyReading) {
+  Widget _buildMyLibrarySection(BuildContext context, List<BookUserDto> books) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -300,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Leyendo Ahora',
+              'Mi Biblioteca',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -309,133 +282,181 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton.icon(
               onPressed: () {
-                context.pushNamed('explore');
+                context.pushNamed('user-library');
               },
-              icon: const Icon(Icons.add, color: Color(0xFF8B5CF6)),
+              icon: const Icon(Icons.library_books, color: Color(0xFF8B5CF6)),
               label: const Text(
-                'Agregar',
+                'Ver todos',
                 style: TextStyle(color: Color(0xFF8B5CF6)),
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: currentlyReading.length,
-            itemBuilder: (context, index) {
-              final book = currentlyReading[index];
-              final gradients = [
-                [const Color(0xFF8B5CF6), const Color(0xFFEC4899)],
-                [const Color(0xFF10B981), const Color(0xFF06B6D4)],
-                [const Color(0xFFF59E0B), const Color(0xFFEF4444)],
-              ];
-
-              return Container(
-                width: 300,
-                margin: EdgeInsets.only(
-                    right: index < currentlyReading.length - 1 ? 16 : 0),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: gradients[index % gradients.length]),
-                  borderRadius: BorderRadius.circular(20),
+        if (books.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A2E),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.library_books_outlined,
+                  size: 60,
+                  color: Color(0xFF8B5CF6),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Título y emoji (usaremos el bookId como referencia)
-                    const Row(
+                const SizedBox(height: 16),
+                const Text(
+                  'No tienes libros en tu biblioteca',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Explora y añade libros para comenzar',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    context.pushNamed('explore');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                  ),
+                  child: const Text('Explorar libros'),
+                ),
+              ],
+            ),
+          )
+        else
+          SizedBox(
+            height: 160,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: books.length,
+              itemBuilder: (context, index) {
+                final bookUser = books[index];
+
+                // Extraer datos del libro si están disponibles
+                final bookData = bookUser.bookId is Map
+                    ? BookDto.fromJson(bookUser.bookId as Map<String, dynamic>)
+                    : null;
+
+                // Determinar color basado en el estado
+                Color statusColor;
+                IconData statusIcon;
+
+                switch (bookUser.status) {
+                  case 'to-read':
+                    statusColor = Colors.blue;
+                    statusIcon = Icons.bookmark_border;
+                    break;
+                  case 'reading':
+                    statusColor = Colors.green;
+                    statusIcon = Icons.menu_book;
+                    break;
+                  case 'completed':
+                    statusColor = Colors.amber;
+                    statusIcon = Icons.check_circle;
+                    break;
+                  default:
+                    statusColor = Colors.grey;
+                    statusIcon = Icons.help_outline;
+                }
+
+                return Container(
+                  width: 120,
+                  margin:
+                      EdgeInsets.only(right: index < books.length - 1 ? 16 : 0),
+                  child: GestureDetector(
+                    onTap: () {
+                      if (bookData != null && bookData.id != null) {
+                        context.pushNamed(
+                          'book-detail',
+                          pathParameters: {'id': bookData.id!},
+                        );
+                      } else {
+                        // Redirigir a la biblioteca si no hay ID de libro
+                        context.pushNamed('user-library');
+                      }
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        // Portada del libro
+                        Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                            ),
+                          ),
+                          child: bookData?.coverImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    bookData!.coverImage!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error,
+                                            stackTrace) =>
+                                        const Center(
+                                            child: Text('📚',
+                                                style:
+                                                    TextStyle(fontSize: 32))),
+                                  ),
+                                )
+                              : const Center(
+                                  child: Text('📚',
+                                      style: TextStyle(fontSize: 32))),
+                        ),
+
+                        // Título del libro
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
                             children: [
-                              Text(
-                                'Libro en Progreso', // Aquí iría book.title si tuvieras populate
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                'Autor Desconocido', // book.author
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
+                              Icon(statusIcon, color: statusColor, size: 12),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  bookData?.title ?? 'Libro sin título',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Text('📚', style: TextStyle(fontSize: 32)),
                       ],
                     ),
-                    const SizedBox(height: 16),
-
-                    // Progreso
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Progreso',
-                          style: TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                        Text(
-                          '${((book.currentPage / 400) * 100).toInt()}%', // Asumiendo 400 páginas
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: book.currentPage / 400,
-                      backgroundColor: Colors.white24,
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Página ${book.currentPage} de 400',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                    const Spacer(),
-
-                    // Botón de actualizar
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _showProgressDialog(context, book);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white24,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text('Actualizar Progreso'),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildReadingGoalsSection() {
+  Widget _buildReadingGoalsSection(UserReadingStats stats) {
+    // Calcular el progreso para la meta mensual (asumimos 4 libros al mes como meta)
+    final monthlyGoalProgress = stats.booksRead / 4;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -451,7 +472,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Icon(Icons.track_changes, color: Color(0xFF8B5CF6)),
               const SizedBox(width: 8),
               const Text(
-                'Objetivos de Lectura',
+                'Estadísticas de Lectura',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -461,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Spacer(),
               TextButton(
                 onPressed: () {
-                  // Configurar objetivos
+                  // Configurar objetivos (por implementar)
                 },
                 child: const Text(
                   'Configurar',
@@ -472,25 +493,30 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Páginas diarias
+          // Totales
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Páginas Diarias', style: TextStyle(color: Colors.grey)),
-                  Text('32/50',
-                      style: TextStyle(
+                  const Text('Total Libros',
+                      style: TextStyle(color: Colors.grey)),
+                  Text('${stats.totalBooks}',
+                      style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: 32 / 50,
-                backgroundColor: Colors.grey.withOpacity(0.3),
-                valueColor:
-                    const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Total Reseñas',
+                      style: TextStyle(color: Colors.grey)),
+                  Text('${stats.totalReviews}',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                ],
               ),
             ],
           ),
@@ -501,18 +527,19 @@ class _HomeScreenState extends State<HomeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Meta Mensual', style: TextStyle(color: Colors.grey)),
-                  Text('2/4 libros',
-                      style: TextStyle(
+                  const Text('Meta Mensual',
+                      style: TextStyle(color: Colors.grey)),
+                  Text('${stats.booksRead}/4 libros',
+                      style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: 2 / 4,
+                value: monthlyGoalProgress > 1 ? 1 : monthlyGoalProgress,
                 backgroundColor: Colors.grey.withOpacity(0.3),
                 valueColor:
                     const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
@@ -521,90 +548,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildQuickActionsSection() {
-    final actions = [
-      {
-        'icon': Icons.explore,
-        'label': 'Explorar',
-        'gradient': [const Color(0xFF6366F1), const Color(0xFF8B5CF6)]
-      },
-      {
-        'icon': Icons.group,
-        'label': 'Clubes',
-        'gradient': [const Color(0xFFEC4899), const Color(0xFFF43F5E)]
-      },
-      {
-        'icon': Icons.calendar_today,
-        'label': 'Calendario',
-        'gradient': [const Color(0xFF14B8A6), const Color(0xFF06B6D4)]
-      },
-      {
-        'icon': Icons.emoji_events,
-        'label': 'Logros',
-        'gradient': [const Color(0xFFF59E0B), const Color(0xFFEF4444)]
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Acciones Rápidas',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.5,
-          ),
-          itemCount: actions.length,
-          itemBuilder: (context, index) {
-            final action = actions[index];
-            return InkWell(
-              onTap: () {
-                // Navegar según la acción
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient:
-                      LinearGradient(colors: action['gradient'] as List<Color>),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      action['icon'] as IconData,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      action['label'] as String,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
     );
   }
 
@@ -625,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () {
-                // Ver todas las recomendaciones
+                context.pushNamed('explore');
               },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -651,59 +594,70 @@ class _HomeScreenState extends State<HomeScreen> {
                 [const Color(0xFF10B981), const Color(0xFF14B8A6)],
               ];
 
-              return Container(
-                width: 140,
-                margin: EdgeInsets.only(
-                    right: index < recommendations.length - 1 ? 16 : 0),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: gradients[index % gradients.length]),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('📖', style: TextStyle(fontSize: 32)),
-                      const SizedBox(height: 8),
-                      Text(
-                        book.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        book.authors.isNotEmpty
-                            ? book.authors.first
-                            : 'Autor desconocido',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.star, color: Colors.white, size: 14),
-                          Text(
-                            ' ${book.averageRating.toStringAsFixed(1)}',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 12),
+              return GestureDetector(
+                onTap: () {
+                  if (book.id != null) {
+                    context.pushNamed(
+                      'book-detail',
+                      pathParameters: {'id': book.id!},
+                    );
+                  }
+                },
+                child: Container(
+                  width: 140,
+                  margin: EdgeInsets.only(
+                      right: index < recommendations.length - 1 ? 16 : 0),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: gradients[index % gradients.length]),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('📖', style: TextStyle(fontSize: 32)),
+                        const SizedBox(height: 8),
+                        Text(
+                          book.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
                           ),
-                        ],
-                      ),
-                    ],
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          book.authors.isNotEmpty
+                              ? book.authors.first
+                              : 'Autor desconocido',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.star,
+                                color: Colors.white, size: 14),
+                            Text(
+                              ' ${book.averageRating.toStringAsFixed(1)}',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -727,10 +681,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.group, color: Color(0xFF10B981)),
+              Icon(Icons.history, color: Color(0xFF10B981)),
               SizedBox(width: 8),
               Text(
-                'Actividad Reciente',
+                'Últimos Libros Completados',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -743,55 +697,85 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Libros recientemente terminados
           if (recentlyFinished.isNotEmpty)
-            ...recentlyFinished
-                .take(3)
-                .map((book) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF10B981), Color(0xFF059669)],
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'F',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Has terminado de leer un libro',
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                                Text(
-                                  'hace ${_getTimeAgo(book.finishDate)}',
-                                  style: const TextStyle(
-                                      color: Colors.grey, fontSize: 12),
-                                ),
-                              ],
+            ...recentlyFinished.take(3).map((bookUser) {
+              // Extraer datos del libro si están disponibles
+              final bookData = bookUser.bookId is Map
+                  ? BookDto.fromJson(bookUser.bookId as Map<String, dynamic>)
+                  : null;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    if (bookData != null && bookData.id != null) {
+                      context.pushNamed(
+                        'book-detail',
+                        pathParameters: {'id': bookData.id!},
+                      );
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      // Miniatura del libro
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: Text(
+                            bookData?.title.substring(0, 1) ?? 'L',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ))
-                .toList()
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              bookData?.title ?? 'Libro sin título',
+                              style: const TextStyle(color: Colors.white),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Completado ${_getTimeAgo(bookUser.finishDate)}',
+                              style: const TextStyle(
+                                  color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Valoración si existe
+                      if (bookUser.personalRating > 0)
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
+                            Text(
+                              ' ${bookUser.personalRating}',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList()
           else
             const Text(
-              'No hay actividad reciente',
+              'No has completado ningún libro recientemente',
               style: TextStyle(color: Colors.grey),
             ),
         ],
@@ -805,65 +789,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final difference = now.difference(date);
 
     if (difference.inDays > 0) {
-      return '${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
+      return 'hace ${difference.inDays} día${difference.inDays > 1 ? 's' : ''}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
+      return 'hace ${difference.inHours} hora${difference.inHours > 1 ? 's' : ''}';
     } else {
-      return '${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
+      return 'hace ${difference.inMinutes} minuto${difference.inMinutes > 1 ? 's' : ''}';
     }
-  }
-
-  void _showProgressDialog(BuildContext context, BookUserDto book) {
-    final pageController =
-        TextEditingController(text: book.currentPage.toString());
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text(
-          'Actualizar Progreso',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: TextField(
-          controller: pageController,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            labelText: 'Página actual',
-            labelStyle: TextStyle(color: Colors.grey),
-            enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Colors.grey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newPage =
-                  int.tryParse(pageController.text) ?? book.currentPage;
-              context.read<HomeBloc>().add(
-                    HomeUpdateQuickProgress(
-                      bookUserId: book.id!,
-                      newPage: newPage,
-                    ),
-                  );
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-            ),
-            child: const Text('Actualizar'),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -75,7 +75,7 @@ Map<String, dynamic> _$ReadingGoalDtoToJson(ReadingGoalDto instance) =>
 BookUserDto _$BookUserDtoFromJson(Map<String, dynamic> json) => BookUserDto(
       id: json['_id'] as String?,
       userId: json['userId'] as String,
-      bookId: json['bookId'] as String,
+      bookId: BookDto.fromJson(json['bookId'] as Map<String, dynamic>),
       status: json['status'] as String? ?? 'to-read',
       currentPage: (json['currentPage'] as num?)?.toInt() ?? 0,
       startDate:

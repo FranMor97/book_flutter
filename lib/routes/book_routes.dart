@@ -1,21 +1,23 @@
 // lib/routes/book_routes.dart
 import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
-import 'package:book_app_f/data/bloc/home/home_bloc.dart'; // Añadido
+import 'package:book_app_f/data/bloc/home/home_bloc.dart';
+import 'package:book_app_f/data/bloc/user_library/user_library_bloc.dart'; // Importar el nuevo bloc
+import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
-import 'package:book_app_f/screens/home_screen/home_screen.dart'; // Añadido
+import 'package:book_app_f/screens/home_screen/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/bloc/login/login_bloc.dart';
 import '../data/bloc/register_bloc/register_bloc.dart';
-import '../data/repositories/auth_repository.dart'; // Añadido
-import '../data/repositories/book_repository.dart'; // Añadido
+import '../data/repositories/auth_repository.dart';
+import '../data/repositories/book_repository.dart';
 import '../data/repositories/user_repository.dart';
-import '../data/repositories/book_user_repository.dart'; // Añadido
+import '../data/repositories/book_user_repository.dart';
 import '../injection.dart';
 import '../screens/search_books/book_detail.dart';
 import '../screens/search_books/explore_screen.dart';
@@ -36,6 +38,7 @@ class AppRouter {
   static const String home = 'home';
   static const String explore = 'explore';
   static const String bookDetail = 'book-detail';
+  static const String userLibrary = 'user-library'; // Nueva ruta
   static const String main = 'main';
 
   // Definición de las rutas
@@ -45,6 +48,7 @@ class AppRouter {
   static const String homePath = '/home';
   static const String explorePath = '/explore';
   static const String bookDetailPath = '/book/:id';
+  static const String userLibraryPath = '/library'; // Nueva ruta
   static const String mainPath = '/';
 
   final _router = GoRouter(
@@ -107,10 +111,23 @@ class AppRouter {
         builder: (context, state) {
           final bookId = state.pathParameters['id']!;
           return BlocProvider(
-            create: (context) => getIt<BookDetailBloc>(),
+            create: (context) =>
+                getIt<BookDetailBloc>()..add(BookDetailLoad(bookId: bookId)),
             child: BookDetailScreen(bookId: bookId),
           );
         },
+      ),
+      // Ruta para la biblioteca del usuario
+      GoRoute(
+        name: userLibrary,
+        path: userLibraryPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => UserLibraryBloc(
+            bookUserRepository: getIt<IBookUserRepository>(),
+            authRepository: getIt<IAuthRepository>(),
+          )..add(UserLibraryLoadBooks()),
+          child: const UserLibraryScreen(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
