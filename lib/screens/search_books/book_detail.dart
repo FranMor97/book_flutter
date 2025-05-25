@@ -339,7 +339,8 @@ class BookDetailScreen extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () {
-                _showStatusChangeMenu(context, book, userBook);
+                _showStatusChangeMenu(
+                    context, book, userBook, context.read<BookDetailBloc>());
               },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Color(0xFF8B5CF6)),
@@ -376,8 +377,8 @@ class BookDetailScreen extends StatelessWidget {
     );
   }
 
-  void _showStatusChangeMenu(
-      BuildContext context, BookDto book, UserBookStatus userBook) {
+  void _showStatusChangeMenu(BuildContext context, BookDto book,
+      UserBookStatus userBook, BookDetailBloc bloc) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A2E),
@@ -385,49 +386,56 @@ class BookDetailScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Cambiar estado',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        return BlocProvider.value(
+          value: bloc,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Cambiar estado',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildStatusOption(
-                context,
-                'Por leer',
-                'to-read',
-                userBook.status,
-                book.id!,
-              ),
-              _buildStatusOption(
-                context,
-                'Leyendo',
-                'reading',
-                userBook.status,
-                book.id!,
-              ),
-              _buildStatusOption(
-                context,
-                'Completado',
-                'completed',
-                userBook.status,
-                book.id!,
-              ),
-              _buildStatusOption(
-                context,
-                'Abandonado',
-                'abandoned',
-                userBook.status,
-                book.id!,
-              ),
-            ],
+                const SizedBox(height: 16),
+                _buildStatusOption(
+                  context,
+                  'Por leer',
+                  'to-read',
+                  userBook.status,
+                  book.id!,
+                  bloc,
+                ),
+                _buildStatusOption(
+                  context,
+                  'Leyendo',
+                  'reading',
+                  userBook.status,
+                  book.id!,
+                  bloc,
+                ),
+                _buildStatusOption(
+                  context,
+                  'Completado',
+                  'completed',
+                  userBook.status,
+                  book.id!,
+                  bloc,
+                ),
+                _buildStatusOption(
+                  context,
+                  'Abandonado',
+                  'abandoned',
+                  userBook.status,
+                  book.id!,
+                  bloc,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -440,6 +448,7 @@ class BookDetailScreen extends StatelessWidget {
     String status,
     String currentStatus,
     String bookId,
+    BookDetailBloc bloc,
   ) {
     final isSelected = status == currentStatus;
 
@@ -456,24 +465,24 @@ class BookDetailScreen extends StatelessWidget {
         groupValue: currentStatus,
         onChanged: (value) {
           Navigator.pop(context);
-          context.read<BookDetailBloc>().add(
-                BookDetailUpdateStatus(
-                  bookId: bookId,
-                  status: value!,
-                ),
-              );
+          bloc.add(
+            BookDetailUpdateStatus(
+              bookId: bookId,
+              status: value!,
+            ),
+          );
         },
         activeColor: const Color(0xFF8B5CF6),
       ),
       onTap: () {
         if (status != currentStatus) {
           Navigator.pop(context);
-          context.read<BookDetailBloc>().add(
-                BookDetailUpdateStatus(
-                  bookId: bookId,
-                  status: status,
-                ),
-              );
+          bloc.add(
+            BookDetailUpdateStatus(
+              bookId: bookId,
+              status: status,
+            ),
+          );
         }
       },
     );

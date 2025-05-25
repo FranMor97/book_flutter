@@ -152,6 +152,8 @@ class DioBookUserRepository implements IBookUserRepository {
         updateData['finishDate'] = finishDate.toIso8601String();
       }
 
+      final url = '$_baseUrl$_bookUsersEndpoint/$id';
+
       final response = await _dio.patch(
         '$_baseUrl$_bookUsersEndpoint/$id',
         data: updateData,
@@ -272,6 +274,7 @@ class DioBookUserRepository implements IBookUserRepository {
   @override
   Future<UserReadingStats> getUserReadingStats(String userId) async {
     try {
+      final url = '$_baseUrl$_bookUsersEndpoint/user/$userId/stats';
       final response = await _dio.get(
         '$_baseUrl$_bookUsersEndpoint/user/$userId/stats',
       );

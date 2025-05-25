@@ -64,6 +64,7 @@ class AppRouter {
         name: login,
         path: loginPath,
         builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
           create: (context) => LoginBloc(
             userRepository: getIt<IUserRepository>(),
           ),
@@ -85,6 +86,7 @@ class AppRouter {
         name: home,
         path: homePath,
         builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
           create: (context) => HomeBloc(
             bookUserRepository: getIt<IBookUserRepository>(),
             bookRepository: getIt<IBookRepository>(),
@@ -122,6 +124,7 @@ class AppRouter {
         name: userLibrary,
         path: userLibraryPath,
         builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
           create: (context) => UserLibraryBloc(
             bookUserRepository: getIt<IBookUserRepository>(),
             authRepository: getIt<IAuthRepository>(),

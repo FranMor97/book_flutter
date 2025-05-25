@@ -182,10 +182,10 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 ),
               );
             }
-
+            final bloc = context.read<UserLibraryBloc>();
             return RefreshIndicator(
               onRefresh: () async {
-                context.read<UserLibraryBloc>().add(UserLibraryRefresh());
+                bloc.add(UserLibraryRefresh());
               },
               color: const Color(0xFF8B5CF6),
               child: GridView.builder(
@@ -199,12 +199,9 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 itemCount: state.books.length,
                 itemBuilder: (context, index) {
                   final bookUser = state.books[index];
-                  final bookData = bookUser.bookId is Map
-                      ? BookDto.fromJson(
-                          bookUser.bookId as Map<String, dynamic>)
-                      : null;
+                  final bookData = bookUser.bookId;
 
-                  return _buildBookCard(context, bookUser, bookData);
+                  return _buildBookCard(context, bookUser, bookData, bloc);
                 },
               ),
             );
@@ -224,7 +221,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
   }
 
   Widget _buildBookCard(
-      BuildContext context, BookUserDto bookUser, BookDto? bookData) {
+      BuildContext context, BookUserDto bookUser, BookDto? bookData, bloc) {
     // Determinar color basado en el estado
     Color statusColor;
     String statusText;
@@ -325,7 +322,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                       icon: const Icon(Icons.more_vert, color: Colors.white),
                       iconSize: 20,
                       onPressed: () {
-                        _showOptionsBottomSheet(context, bookUser, bookData);
+                        _showOptionsBottomSheet(
+                            context, bookUser, bookData, bloc);
                       },
                     ),
                   ),
@@ -446,8 +444,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showOptionsBottomSheet(
-      BuildContext context, BookUserDto bookUser, BookDto? bookData) {
+  void _showOptionsBottomSheet(BuildContext context, BookUserDto bookUser,
+      BookDto? bookData, UserLibraryBloc bloc) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A2E),
@@ -505,7 +503,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 title: 'Añadir reseña',
                 onTap: () {
                   Navigator.pop(context);
-                  _showAddReviewDialog(context, bookUser);
+                  _showAddReviewDialog(context, bookUser, bloc);
                 },
               ),
 
@@ -515,7 +513,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 title: 'Añadir nota',
                 onTap: () {
                   Navigator.pop(context);
-                  _showAddNoteDialog(context, bookUser);
+                  _showAddNoteDialog(context, bookUser, bloc);
                 },
               ),
 
@@ -525,7 +523,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 title: 'Cambiar estado',
                 onTap: () {
                   Navigator.pop(context);
-                  _showStatusChangeDialog(context, bookUser);
+                  _showStatusChangeDialog(context, bookUser, bloc);
                 },
               ),
 
@@ -536,7 +534,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 color: Colors.red,
                 onTap: () {
                   Navigator.pop(context);
-                  _confirmRemoveBook(context, bookUser.id!);
+                  _confirmRemoveBook(context, bookUser.id!, bloc);
                 },
               ),
             ],
@@ -561,7 +559,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _confirmRemoveBook(BuildContext context, String bookUserId) {
+  void _confirmRemoveBook(
+      BuildContext context, String bookUserId, UserLibraryBloc bloc) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -580,9 +579,9 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<UserLibraryBloc>().add(
-                    UserLibraryRemoveBook(bookUserId: bookUserId),
-                  );
+              bloc.add(
+                UserLibraryRemoveBook(bookUserId: bookUserId),
+              );
             },
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
@@ -591,7 +590,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showStatusChangeDialog(BuildContext context, BookUserDto bookUser) {
+  void _showStatusChangeDialog(
+      BuildContext context, BookUserDto bookUser, UserLibraryBloc bloc) {
     String currentStatus = bookUser.status;
 
     showDialog(
@@ -681,7 +681,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showAddNoteDialog(BuildContext context, BookUserDto bookUser) {
+  void _showAddNoteDialog(
+      BuildContext context, BookUserDto bookUser, UserLibraryBloc bloc) {
     final textController = TextEditingController();
     final pageController =
         TextEditingController(text: bookUser.currentPage.toString());
@@ -744,12 +745,12 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                 );
 
                 Navigator.pop(context);
-                context.read<UserLibraryBloc>().add(
-                      UserLibraryAddNote(
-                        bookUserId: bookUser.id!,
-                        note: note,
-                      ),
-                    );
+                bloc.add(
+                  UserLibraryAddNote(
+                    bookUserId: bookUser.id!,
+                    note: note,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
@@ -762,7 +763,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showAddReviewDialog(BuildContext context, BookUserDto bookUser) {
+  void _showAddReviewDialog(
+      BuildContext context, BookUserDto bookUser, UserLibraryBloc bloc) {
     final titleController = TextEditingController();
     final textController = TextEditingController();
     int rating = 0;
@@ -852,12 +854,12 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                   );
 
                   Navigator.pop(context);
-                  context.read<UserLibraryBloc>().add(
-                        UserLibraryAddReview(
-                          bookUserId: bookUser.id!,
-                          review: review,
-                        ),
-                      );
+                  bloc.add(
+                    UserLibraryAddReview(
+                      bookUserId: bookUser.id!,
+                      review: review,
+                    ),
+                  );
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -964,8 +966,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showNotesAndReviews(
-      BuildContext context, BookUserDto bookUser, BookDto? bookData) {
+  void _showNotesAndReviews(BuildContext context, BookUserDto bookUser,
+      BookDto? bookData, UserLibraryBloc bloc) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A2E),
@@ -1031,10 +1033,10 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                             child: TabBarView(
                               children: [
                                 // Pestaña de notas
-                                _buildNotesTab(bookUser),
+                                _buildNotesTab(bookUser, bloc),
 
                                 // Pestaña de reseñas
-                                _buildReviewsTab(bookUser),
+                                _buildReviewsTab(bookUser, bloc),
                               ],
                             ),
                           ),
@@ -1051,7 +1053,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  Widget _buildNotesTab(BookUserDto bookUser) {
+  Widget _buildNotesTab(BookUserDto bookUser, UserLibraryBloc bloc) {
     if (bookUser.notes.isEmpty) {
       return Center(
         child: Column(
@@ -1068,7 +1070,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                _showAddNoteDialog(context, bookUser);
+                _showAddNoteDialog(context, bookUser, bloc);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6),
@@ -1147,7 +1149,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  Widget _buildReviewsTab(BookUserDto bookUser) {
+  Widget _buildReviewsTab(BookUserDto bookUser, UserLibraryBloc bloc) {
     if (bookUser.reviews.isEmpty) {
       return Center(
         child: Column(
@@ -1165,7 +1167,7 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
             ElevatedButton.icon(
               onPressed: () {
                 Navigator.pop(context);
-                _showAddReviewDialog(context, bookUser);
+                _showAddReviewDialog(context, bookUser, bloc);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6),

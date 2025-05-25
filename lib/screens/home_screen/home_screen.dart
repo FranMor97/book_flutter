@@ -18,7 +18,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
     context.read<HomeBloc>().add(HomeLoadDashboard());
   }
 
@@ -265,6 +264,192 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Widget _buildMyLibrarySection(BuildContext context, List<BookUserDto> books) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //         children: [
+  //           const Text(
+  //             'Mi Biblioteca',
+  //             style: TextStyle(
+  //               color: Colors.white,
+  //               fontSize: 22,
+  //               fontWeight: FontWeight.bold,
+  //             ),
+  //           ),
+  //           TextButton.icon(
+  //             onPressed: () {
+  //               context.pushNamed('user-library');
+  //             },
+  //             icon: const Icon(Icons.library_books, color: Color(0xFF8B5CF6)),
+  //             label: const Text(
+  //               'Ver todos',
+  //               style: TextStyle(color: Color(0xFF8B5CF6)),
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       const SizedBox(height: 16),
+  //       if (books.isEmpty)
+  //         Container(
+  //           width: double.infinity,
+  //           padding: const EdgeInsets.all(20),
+  //           decoration: BoxDecoration(
+  //             color: const Color(0xFF1A1A2E),
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //           child: Column(
+  //             children: [
+  //               const Icon(
+  //                 Icons.library_books_outlined,
+  //                 size: 60,
+  //                 color: Color(0xFF8B5CF6),
+  //               ),
+  //               const SizedBox(height: 16),
+  //               const Text(
+  //                 'No tienes libros en tu biblioteca',
+  //                 style: TextStyle(
+  //                   color: Colors.white,
+  //                   fontSize: 16,
+  //                   fontWeight: FontWeight.bold,
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 8),
+  //               const Text(
+  //                 'Explora y añade libros para comenzar',
+  //                 style: TextStyle(color: Colors.grey, fontSize: 14),
+  //                 textAlign: TextAlign.center,
+  //               ),
+  //               const SizedBox(height: 16),
+  //               ElevatedButton(
+  //                 onPressed: () {
+  //                   context.pushNamed('explore');
+  //                 },
+  //                 style: ElevatedButton.styleFrom(
+  //                   backgroundColor: const Color(0xFF8B5CF6),
+  //                 ),
+  //                 child: const Text('Explorar libros'),
+  //               ),
+  //             ],
+  //           ),
+  //         )
+  //       else
+  //         SizedBox(
+  //           height: 160,
+  //           child: ListView.builder(
+  //             scrollDirection: Axis.horizontal,
+  //             itemCount: books.length,
+  //             itemBuilder: (context, index) {
+  //               final bookUser = books[index];
+  //
+  //               // Extraer datos del libro si están disponibles
+  //               final bookData = bookUser.bookId;
+  //
+  //               // Determinar color basado en el estado
+  //               Color statusColor;
+  //               IconData statusIcon;
+  //
+  //               switch (bookUser.status) {
+  //                 case 'to-read':
+  //                   statusColor = Colors.blue;
+  //                   statusIcon = Icons.bookmark_border;
+  //                   break;
+  //                 case 'reading':
+  //                   statusColor = Colors.green;
+  //                   statusIcon = Icons.menu_book;
+  //                   break;
+  //                 case 'completed':
+  //                   statusColor = Colors.amber;
+  //                   statusIcon = Icons.check_circle;
+  //                   break;
+  //                 default:
+  //                   statusColor = Colors.grey;
+  //                   statusIcon = Icons.help_outline;
+  //               }
+  //
+  //               return Container(
+  //                 width: 120,
+  //                 margin:
+  //                     EdgeInsets.only(right: index < books.length - 1 ? 16 : 0),
+  //                 child: GestureDetector(
+  //                   onTap: () {
+  //                     if (bookData.id != null) {
+  //                       context.pushNamed(
+  //                         'book-detail',
+  //                         pathParameters: {'id': bookData.id!},
+  //                       );
+  //                     } else {
+  //                       // Redirigir a la biblioteca si no hay ID de libro
+  //                       context.pushNamed('user-library');
+  //                     }
+  //                   },
+  //                   child: Column(
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       // Portada del libro
+  //                       Container(
+  //                         height: 120,
+  //                         decoration: BoxDecoration(
+  //                           borderRadius: BorderRadius.circular(12),
+  //                           gradient: const LinearGradient(
+  //                             begin: Alignment.topCenter,
+  //                             end: Alignment.bottomCenter,
+  //                             colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+  //                           ),
+  //                         ),
+  //                         child: bookData.coverImage != null
+  //                             ? ClipRRect(
+  //                                 borderRadius: BorderRadius.circular(12),
+  //                                 child: Image.network(
+  //                                   bookData.coverImage!,
+  //                                   fit: BoxFit.cover,
+  //                                   errorBuilder: (context, error,
+  //                                           stackTrace) =>
+  //                                       const Center(
+  //                                           child: Text('📚',
+  //                                               style:
+  //                                                   TextStyle(fontSize: 32))),
+  //                                 ),
+  //                               )
+  //                             : const Center(
+  //                                 child: Text('📚',
+  //                                     style: TextStyle(fontSize: 32))),
+  //                       ),
+  //
+  //                       // Título del libro
+  //                       Padding(
+  //                         padding: const EdgeInsets.only(top: 8),
+  //                         child: Row(
+  //                           children: [
+  //                             Icon(statusIcon, color: statusColor, size: 12),
+  //                             const SizedBox(width: 4),
+  //                             Expanded(
+  //                               child: Text(
+  //                                 bookData.title ?? 'Libro sin título',
+  //                                 style: const TextStyle(
+  //                                   color: Colors.white,
+  //                                   fontSize: 12,
+  //                                 ),
+  //                                 maxLines: 1,
+  //                                 overflow: TextOverflow.ellipsis,
+  //                               ),
+  //                             ),
+  //                           ],
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               );
+  //             },
+  //           ),
+  //         ),
+  //     ],
+  //   );
+  // }
+
   Widget _buildMyLibrarySection(BuildContext context, List<BookUserDto> books) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,22 +523,17 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 160,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
+            height: 200,
+            child: PageView.builder(
+              controller: PageController(viewportFraction: 0.7),
               itemCount: books.length,
               itemBuilder: (context, index) {
                 final bookUser = books[index];
+                final bookData = bookUser.bookId;
 
-                // Extraer datos del libro si están disponibles
-                final bookData = bookUser.bookId is Map
-                    ? BookDto.fromJson(bookUser.bookId as Map<String, dynamic>)
-                    : null;
-
-                // Determinar color basado en el estado
+                // Determinar color e ícono por estado
                 Color statusColor;
                 IconData statusIcon;
-
                 switch (bookUser.status) {
                   case 'to-read':
                     statusColor = Colors.blue;
@@ -372,65 +552,54 @@ class _HomeScreenState extends State<HomeScreen> {
                     statusIcon = Icons.help_outline;
                 }
 
-                return Container(
-                  width: 120,
-                  margin:
-                      EdgeInsets.only(right: index < books.length - 1 ? 16 : 0),
-                  child: GestureDetector(
-                    onTap: () {
-                      if (bookData != null && bookData.id != null) {
-                        context.pushNamed(
-                          'book-detail',
-                          pathParameters: {'id': bookData.id!},
-                        );
-                      } else {
-                        // Redirigir a la biblioteca si no hay ID de libro
-                        context.pushNamed('user-library');
-                      }
-                    },
+                return GestureDetector(
+                  onTap: () {
+                    if (bookData.id != null) {
+                      context.pushNamed(
+                        'book-detail',
+                        pathParameters: {'id': bookData.id!},
+                      );
+                    } else {
+                      context.pushNamed('user-library');
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFF1A1A2E),
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Portada del libro
-                        Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-                            ),
-                          ),
-                          child: bookData?.coverImage != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    bookData!.coverImage!,
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16)),
+                            child: bookData.coverImage != null
+                                ? Image.network(
+                                    bookData.coverImage!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (context, error,
-                                            stackTrace) =>
-                                        const Center(
-                                            child: Text('📚',
-                                                style:
-                                                    TextStyle(fontSize: 32))),
+                                    errorBuilder: (_, __, ___) => Image.asset(
+                                      'assets/images/default_cover.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Image.asset(
+                                    'assets/images/default_cover.png',
+                                    fit: BoxFit.cover,
                                   ),
-                                )
-                              : const Center(
-                                  child: Text('📚',
-                                      style: TextStyle(fontSize: 32))),
+                          ),
                         ),
-
-                        // Título del libro
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(8),
                           child: Row(
                             children: [
-                              Icon(statusIcon, color: statusColor, size: 12),
+                              Icon(statusIcon, color: statusColor, size: 14),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  bookData?.title ?? 'Libro sin título',
+                                  bookData.title ?? 'Libro sin título',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
