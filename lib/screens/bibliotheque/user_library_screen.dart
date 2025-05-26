@@ -492,7 +492,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                   title: 'Actualizar progreso',
                   onTap: () {
                     Navigator.pop(context);
-                    _showUpdateProgressDialog(context, bookUser, bookData);
+                    _showUpdateProgressDialog(
+                        context, bookUser, bookData, bloc);
                   },
                 ),
 
@@ -872,8 +873,8 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
     );
   }
 
-  void _showUpdateProgressDialog(
-      BuildContext context, BookUserDto bookUser, BookDto? bookData) {
+  void _showUpdateProgressDialog(BuildContext context, BookUserDto bookUser,
+      BookDto? bookData, UserLibraryBloc bloc) {
     final pageController =
         TextEditingController(text: bookUser.currentPage.toString());
     int maxPages = bookData?.pageCount ?? 0;
@@ -950,6 +951,13 @@ class _UserLibraryScreenState extends State<UserLibraryScreen>
                           child: const Text('Sí, completado'),
                         ),
                       ],
+                    ),
+                  );
+                } else {
+                  bloc.add(
+                    UserLibraryUpdateProgress(
+                      bookUserId: bookUser.id!,
+                      currentPage: page ?? bookUser.currentPage,
                     ),
                   );
                 }

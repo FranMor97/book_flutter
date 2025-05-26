@@ -183,6 +183,7 @@ class DioBookUserRepository implements IBookUserRepository {
     required bool markAsCompleted,
   }) async {
     try {
+      final url = '$_baseUrl$_bookUsersEndpoint/$id';
       final response = await _dio.patch(
         '$_baseUrl$_bookUsersEndpoint/$id',
         data: {
