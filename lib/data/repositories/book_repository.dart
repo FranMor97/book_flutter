@@ -70,6 +70,14 @@ abstract class IBookRepository {
 
   // En la interfaz IBookRepository
   Future<List<BookComment>> getBookComments(String bookId, String userId);
+
+  Future<BookComment> addBookComment({
+    required String bookId,
+    required String text,
+    required int rating,
+    String? title,
+    bool isPublic = true,
+  });
 }
 
 /// Respuesta que contiene una lista de libros con metadatos de paginación

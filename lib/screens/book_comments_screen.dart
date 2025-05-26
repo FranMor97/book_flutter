@@ -1,4 +1,6 @@
+// lib/screens/book_comments_screen.dart
 import 'package:book_app_f/data/bloc/book_comment_bloc/book_comments_bloc.dart';
+import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/models/book_comments.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,16 +47,17 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
           actions: [
             BlocBuilder<BookCommentsBloc, BookCommentsState>(
               builder: (context, state) {
-                if (state is BookCommentsLoaded && state.canAddComment) {
-                  return IconButton(
-                    icon: const Icon(Icons.add_comment, color: Colors.white),
-                    onPressed: () {
-                      _showAddCommentDialog(
-                          context, widget.bookId, state.userBookId!);
-                    },
-                  );
-                }
-                return const SizedBox.shrink();
+                // Siempre mostrar el botón de añadir comentarios
+                return IconButton(
+                  icon: const Icon(Icons.add_comment, color: Colors.white),
+                  onPressed: () {
+                    String? userBookId;
+                    if (state is BookCommentsLoaded) {
+                      userBookId = state.userBookId;
+                    }
+                    _showAddCommentDialog(context, widget.bookId, userBookId);
+                  },
+                );
               },
             ),
           ],
@@ -113,17 +116,16 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
-                      if (state.canAddComment)
-                        ElevatedButton(
-                          onPressed: () {
-                            _showAddCommentDialog(
-                                context, widget.bookId, state.userBookId!);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                          ),
-                          child: const Text('Añadir valoración'),
+                      ElevatedButton(
+                        onPressed: () {
+                          _showAddCommentDialog(
+                              context, widget.bookId, state.userBookId);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8B5CF6),
                         ),
+                        child: const Text('Añadir valoración'),
+                      ),
                     ],
                   ),
                 );
@@ -136,6 +138,22 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
                   final comment = state.comments[index];
                   return _buildCommentCard(comment);
                 },
+              );
+            }
+
+            if (state is BookCommentsSubmitting) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+                    SizedBox(height: 16),
+                    Text(
+                      'Enviando valoración...',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
               );
             }
 
@@ -170,10 +188,30 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
                 CircleAvatar(
                   backgroundColor: const Color(0xFF8B5CF6),
                   radius: 20,
-                  child: comment.user.avatar != null
-                      ? null // Aquí iría la imagen
+                  child: comment.user.avatar != null &&
+                          comment.user.avatar!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.network(
+                            comment.user.avatar!,
+                            width: 40,
+                            height: 40,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Text(
+                              comment.user.firstName.isNotEmpty
+                                  ? comment.user.firstName.substring(0, 1)
+                                  : '?',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        )
                       : Text(
-                          comment.user.firstName.substring(0, 1),
+                          comment.user.firstName.isNotEmpty
+                              ? comment.user.firstName.substring(0, 1)
+                              : '?',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -219,7 +257,7 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
             ),
 
             // Título (si existe)
-            if (comment.title != null) ...[
+            if (comment.title != null && comment.title!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
                 comment.title!,
@@ -240,6 +278,34 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
                 fontSize: 14,
               ),
             ),
+
+            // Acciones (si es el comentario del usuario)
+            if (comment.isOwnComment) ...[
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      // Función para editar (si se implementa después)
+                    },
+                    icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                    label: const Text('Editar',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      // Función para eliminar (si se implementa después)
+                    },
+                    icon: const Icon(Icons.delete,
+                        size: 16, color: Colors.redAccent),
+                    label: const Text('Eliminar',
+                        style: TextStyle(color: Colors.redAccent)),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -247,10 +313,11 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
   }
 
   void _showAddCommentDialog(
-      BuildContext context, String bookId, String bookUserId) {
+      BuildContext context, String bookId, String? bookUserId) {
     final titleController = TextEditingController();
     final textController = TextEditingController();
     int rating = 0;
+    final bloc = context.read<BookCommentsBloc>();
 
     showDialog(
       context: context,
@@ -336,15 +403,23 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
                         : null,
                     isPublic: true,
                   );
-
                   Navigator.pop(context);
-                  context.read<BookCommentsBloc>().add(
-                        BookCommentsAddComment(
-                          bookId: bookId,
-                          bookUserId: bookUserId,
-                          review: review,
-                        ),
-                      );
+                  bloc.add(
+                    BookCommentsAddComment(
+                      bookId: bookId,
+                      bookUserId: bookUserId,
+                      review: review,
+                    ),
+                  );
+                } else {
+                  // Mostrar error
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                          'Debes escribir un comentario y dar una valoración'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               },
               style: ElevatedButton.styleFrom(

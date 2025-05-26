@@ -5,7 +5,22 @@ abstract class BookCommentsEvent extends Equatable {
   const BookCommentsEvent();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
+}
+
+class BookCommentsAddComment extends BookCommentsEvent {
+  final String bookId;
+  final String? bookUserId; // Hacerlo opcional
+  final ReviewDto review;
+
+  const BookCommentsAddComment({
+    required this.bookId,
+    this.bookUserId, // Ya no es required
+    required this.review,
+  });
+
+  @override
+  List<Object?> get props => [bookId, bookUserId, review];
 }
 
 class BookCommentsLoad extends BookCommentsEvent {
@@ -15,19 +30,4 @@ class BookCommentsLoad extends BookCommentsEvent {
 
   @override
   List<Object> get props => [bookId];
-}
-
-class BookCommentsAddComment extends BookCommentsEvent {
-  final String bookId;
-  final String bookUserId;
-  final ReviewDto review;
-
-  const BookCommentsAddComment({
-    required this.bookId,
-    required this.bookUserId,
-    required this.review,
-  });
-
-  @override
-  List<Object> get props => [bookId, bookUserId, review];
 }

@@ -1,5 +1,6 @@
 import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/models/book_comments.dart';
+import 'package:book_app_f/models/comment_user.dart';
 import 'package:book_app_f/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
@@ -248,6 +249,8 @@ class DioBookRepository implements IBookRepository {
     }
   }
 
+// lib/data/Implementations/dio_book_repository.dart
+// lib/data/Implementations/dio_book_repository.dart
   @override
   Future<List<BookComment>> getBookComments(
       String bookId, String userId) async {
@@ -255,23 +258,117 @@ class DioBookRepository implements IBookRepository {
       final response =
           await _dio.get('$_baseUrl$_booksEndpoint/$bookId/comments');
 
-      final commentsList = (response.data['data'] as List)
-          .map((item) => BookComment(
-                id: item['id'],
-                text: item['text'],
-                rating: item['rating'],
-                date: DateTime.parse(item['date']),
-                title: item['title'],
-                user: User.fromJson(item['user']),
-                isOwnComment: userId != null && item['user']['id'] == userId,
-              ))
-          .toList();
+      if (response.statusCode == 200 && response.data != null) {
+        final Map<String, dynamic> responseData =
+            response.data is Map<String, dynamic>
+                ? response.data
+                : Map<String, dynamic>.from(response.data);
 
-      return commentsList;
+        if (responseData.containsKey('data') && responseData['data'] is List) {
+          final List<dynamic> commentsData = responseData['data'];
+
+          return commentsData.map((item) {
+            // Convertir item a Map<String, dynamic> si no lo es
+            final Map<String, dynamic> commentMap = item is Map<String, dynamic>
+                ? item
+                : Map<String, dynamic>.from(item);
+
+            // Manejar el objeto usuario
+            Map<String, dynamic> userMap;
+            if (commentMap['user'] != null && commentMap['user'] is Map) {
+              userMap = Map<String, dynamic>.from(commentMap['user']);
+            } else {
+              userMap = {
+                'id': 'unknown',
+                'firstName': 'Usuario',
+                'lastName1': 'Anónimo',
+                'avatar': null
+              };
+            }
+
+            return BookComment(
+              id: commentMap['id']?.toString() ?? 'unknown',
+              text: commentMap['text']?.toString() ?? '',
+              rating: commentMap['rating'] is num
+                  ? commentMap['rating'].toInt()
+                  : 0,
+              date: commentMap['date'] != null
+                  ? DateTime.parse(commentMap['date'].toString())
+                  : DateTime.now(),
+              title: commentMap['title']?.toString(),
+              user: CommentUser.fromJson(userMap),
+              isOwnComment: userId != null && userMap['id'] == userId,
+            );
+          }).toList();
+        }
+      }
+      print('📥 NO SE ENCONTRARON COMENTARIOS O FORMATO INCORRECTO');
+      return [];
     } on DioException catch (e) {
+      print('Error DIO al obtener comentarios: ${e.message}');
+      print('Status: ${e.response?.statusCode}');
+      print('Response: ${e.response?.data}');
       throw _handleDioException(e);
     } catch (e) {
+      print('Error general al obtener comentarios: $e');
       throw Exception('Error al obtener comentarios: ${e.toString()}');
+    }
+  }
+
+  // lib/data/Implementations/dio_book_repository.dart
+  @override
+  Future<BookComment> addBookComment({
+    required String bookId,
+    required String text,
+    required int rating,
+    String? title,
+    bool isPublic = true,
+  }) async {
+    try {
+      print('📤 ENVIANDO VALORACIÓN PARA LIBRO: $bookId');
+
+      final data = {
+        'text': text,
+        'rating': rating,
+        'title': title,
+        'isPublic': isPublic,
+      };
+      final url = '$_baseUrl$_booksEndpoint/$bookId/comments';
+      final response = await _dio.post(
+        '$_baseUrl$_booksEndpoint/$bookId/comments',
+        data: data,
+      );
+
+      print('📥 RESPUESTA RECIBIDA [STATUS: ${response.statusCode}]');
+
+      if (response.statusCode == 201 && response.data != null) {
+        final commentData = response.data['data'];
+
+        // Crear el objeto BookComment a partir de la respuesta
+        final comment = BookComment(
+          id: commentData['id'] ?? 'unknown',
+          text: commentData['text'] ?? '',
+          rating: commentData['rating'] ?? 0,
+          date: commentData['date'] != null
+              ? DateTime.parse(commentData['date'])
+              : DateTime.now(),
+          title: commentData['title'],
+          user: CommentUser.fromJson(commentData['user']),
+          isOwnComment: true, // Es del usuario actual
+        );
+
+        return comment;
+      }
+
+      throw Exception('Error al añadir valoración: respuesta inválida');
+    } on DioException catch (e) {
+      print('Error DIO al añadir valoración: ${e.message}');
+      print('Status: ${e.response?.statusCode}');
+      print('Response: ${e.response?.data}');
+      throw _handleDioException(e);
+    } catch (e) {
+      print('Error general al añadir valoración: $e');
+      throw Exception('Error al añadir valoración: ${e.toString()}');
     }
   }
 

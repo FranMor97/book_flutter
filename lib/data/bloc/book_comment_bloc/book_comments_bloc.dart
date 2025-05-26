@@ -63,18 +63,28 @@ class BookCommentsBloc extends Bloc<BookCommentsEvent, BookCommentsState> {
     BookCommentsAddComment event,
     Emitter<BookCommentsState> emit,
   ) async {
-    // Guardar estado actual
     final currentState = state;
     if (currentState is! BookCommentsLoaded) return;
 
     emit(BookCommentsSubmitting());
 
     try {
-      // Añadir reseña
-      final updatedBookUser = await bookUserRepository.addReview(
-        id: event.bookUserId,
-        review: event.review,
-      );
+      // Si tenemos bookUserId, añadir la reseña a través de bookUserRepository
+      if (event.bookUserId != null && event.bookUserId!.isNotEmpty) {
+        await bookUserRepository.addReview(
+          id: event.bookUserId!,
+          review: event.review,
+        );
+      } else {
+        // Si no tenemos bookUserId, añadir la valoración directamente
+        await bookRepository.addBookComment(
+          bookId: event.bookId,
+          text: event.review.text,
+          rating: event.review.rating,
+          title: event.review.title,
+          isPublic: event.review.isPublic,
+        );
+      }
 
       // Recargar comentarios
       add(BookCommentsLoad(bookId: event.bookId));
