@@ -9,6 +9,34 @@ abstract class BookDetailEvent extends Equatable {
   List<Object> get props => [];
 }
 
+class BookDetailUpdateStatusWithProgress extends BookDetailEvent {
+  final String bookUserId;
+  final String status;
+  final int currentPage;
+
+  const BookDetailUpdateStatusWithProgress({
+    required this.bookUserId,
+    required this.status,
+    required this.currentPage,
+  });
+
+  @override
+  List<Object> get props => [bookUserId, status, currentPage];
+}
+
+class BookDetailUpdateProgress extends BookDetailEvent {
+  final String bookUserId;
+  final int currentPage;
+
+  const BookDetailUpdateProgress({
+    required this.bookUserId,
+    required this.currentPage,
+  });
+
+  @override
+  List<Object> get props => [bookUserId, currentPage];
+}
+
 class BookDetailLoad extends BookDetailEvent {
   final String bookId;
 

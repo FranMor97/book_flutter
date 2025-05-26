@@ -1,4 +1,6 @@
 // lib/data/repositories/book_repository.dart
+import 'package:book_app_f/models/book_comments.dart';
+
 import '../../models/dtos/book_dto.dart';
 
 /// Repositorio abstracto para gestionar libros
@@ -65,6 +67,9 @@ abstract class IBookRepository {
 
   /// Obtiene autores disponibles
   Future<List<String>> getAvailableAuthors();
+
+  // En la interfaz IBookRepository
+  Future<List<BookComment>> getBookComments(String bookId, String userId);
 }
 
 /// Respuesta que contiene una lista de libros con metadatos de paginación

@@ -123,9 +123,9 @@ class BookDetailScreen extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: const Icon(Icons.share, color: Colors.white),
+                icon: const Icon(Icons.home, color: Colors.white),
                 onPressed: () {
-                  // Compartir libro
+                  context.goNamed('home');
                 },
               ),
             ),
@@ -169,9 +169,21 @@ class BookDetailScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      ' (${book.totalRatings} valoraciones)',
-                      style: const TextStyle(color: Colors.grey),
+                    GestureDetector(
+                      onTap: () {
+                        // Navegar a la pantalla de comentarios
+                        context.pushNamed(
+                          'book-comments',
+                          pathParameters: {'id': book.id!},
+                        );
+                      },
+                      child: Text(
+                        ' (${book.totalRatings} valoraciones)',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
                     ),
                     const Spacer(),
                     if (book.pageCount != null)
@@ -315,8 +327,7 @@ class BookDetailScreen extends StatelessWidget {
                         ),
                       );
                 } else if (userBook.status == 'reading') {
-                  // Navegar a la pantalla de lectura
-                  // context.go('/reading/${userBook.id}');
+                  _showUpdateProgressDialog(context, book, userBook);
                 }
               },
               style: FilledButton.styleFrom(
@@ -373,6 +384,168 @@ class BookDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: const Text('Añadir a mi biblioteca'),
+      ),
+    );
+  }
+
+  void _showUpdateProgressDialog(
+      BuildContext context, BookDto book, UserBookStatus userBook) {
+    final pageController =
+        TextEditingController(text: userBook.currentPage.toString());
+    final bloc = context.read<BookDetailBloc>();
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A2E),
+          title: const Text('Actualizar progreso',
+              style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: pageController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Página actual',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  helperText: book.pageCount != null
+                      ? 'Máximo: ${book.pageCount} páginas'
+                      : null,
+                  helperStyle: const TextStyle(color: Colors.grey),
+                  errorText: errorText,
+                  enabledBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                  ),
+                  errorBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.red),
+                  ),
+                ),
+                onChanged: (value) {
+                  // Limpiar mensaje de error cuando el usuario escribe
+                  if (errorText != null) {
+                    setState(() {
+                      errorText = null;
+                    });
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child:
+                  const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final pageText = pageController.text;
+                if (pageText.isEmpty) {
+                  setState(() {
+                    errorText = 'Introduce un número de página';
+                  });
+                  return;
+                }
+
+                final page = int.tryParse(pageText);
+                if (page == null) {
+                  setState(() {
+                    errorText = 'Número de página inválido';
+                  });
+                  return;
+                }
+
+                // Validar que no sea menor al progreso actual
+                if (page < userBook.currentPage) {
+                  setState(() {
+                    errorText =
+                        'No puede ser menor a tu progreso actual (${userBook.currentPage})';
+                  });
+                  return;
+                }
+
+                // Validar que no exceda el total de páginas
+                if (book.pageCount != null && page > book.pageCount!) {
+                  setState(() {
+                    errorText =
+                        'No puede exceder el total de páginas (${book.pageCount})';
+                  });
+                  return;
+                }
+
+                Navigator.pop(context);
+
+                // Si ha llegado al final del libro, mostrar diálogo para marcar como completado
+                if (book.pageCount != null && page == book.pageCount) {
+                  _showCompletionDialog(context, userBook, bloc, page);
+                } else {
+                  // Actualizar solo el progreso
+                  bloc.add(BookDetailUpdateProgress(
+                    bookUserId: userBook.id,
+                    currentPage: page,
+                  ));
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+              ),
+              child: const Text('Actualizar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Diálogo para confirmar cambio a estado "completado"
+  void _showCompletionDialog(BuildContext context, UserBookStatus userBook,
+      BookDetailBloc bloc, int page) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title:
+            const Text('¡Felicidades!', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          '¡Has llegado al final del libro! ¿Quieres marcarlo como completado?',
+          style: TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Solo actualizar progreso
+              bloc.add(BookDetailUpdateProgress(
+                bookUserId: userBook.id,
+                currentPage: page,
+              ));
+            },
+            child: const Text('No, solo actualizar',
+                style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Actualizar a completado
+              bloc.add(BookDetailUpdateStatusWithProgress(
+                bookUserId: userBook.id,
+                status: 'completed',
+                currentPage: page,
+              ));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+            child: const Text('Sí, completado'),
+          ),
+        ],
       ),
     );
   }

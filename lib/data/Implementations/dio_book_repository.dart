@@ -1,4 +1,6 @@
 import 'package:book_app_f/data/repositories/book_repository.dart';
+import 'package:book_app_f/models/book_comments.dart';
+import 'package:book_app_f/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../models/dtos/book_dto.dart';
@@ -243,6 +245,33 @@ class DioBookRepository implements IBookRepository {
       throw _handleDioException(e);
     } catch (e) {
       throw Exception('Error al obtener géneros: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<BookComment>> getBookComments(
+      String bookId, String userId) async {
+    try {
+      final response =
+          await _dio.get('$_baseUrl$_booksEndpoint/$bookId/comments');
+
+      final commentsList = (response.data['data'] as List)
+          .map((item) => BookComment(
+                id: item['id'],
+                text: item['text'],
+                rating: item['rating'],
+                date: DateTime.parse(item['date']),
+                title: item['title'],
+                user: User.fromJson(item['user']),
+                isOwnComment: userId != null && item['user']['id'] == userId,
+              ))
+          .toList();
+
+      return commentsList;
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw Exception('Error al obtener comentarios: ${e.toString()}');
     }
   }
 

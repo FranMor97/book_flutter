@@ -27,6 +27,75 @@ class BookDetailBloc extends Bloc<BookDetailEvent, BookDetailState> {
     on<BookDetailLoad>(_onBookDetailLoad);
     on<BookDetailAddToLibrary>(_onBookDetailAddToLibrary);
     on<BookDetailUpdateStatus>(_onBookDetailUpdateStatus);
+    on<BookDetailUpdateProgress>(_onBookDetailUpdateProgress);
+    on<BookDetailUpdateStatusWithProgress>(
+        _onBookDetailUpdateStatusWithProgress);
+  }
+  Future<void> _onBookDetailUpdateStatusWithProgress(
+    BookDetailUpdateStatusWithProgress event,
+    Emitter<BookDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! BookDetailLoaded || currentState.userBook == null) {
+      return;
+    }
+
+    try {
+      // Actualizar estado y progreso
+      final updatedBookUser = await bookUserRepository.updateReadingProgress(
+        id: event.bookUserId,
+        status: event.status,
+        currentPage: event.currentPage,
+      );
+
+      // Crear estado simplificado actualizado
+      final updatedUserBookStatus = UserBookStatus(
+        id: updatedBookUser.id!,
+        status: updatedBookUser.status,
+        currentPage: updatedBookUser.currentPage,
+      );
+
+      // Emitir nuevo estado
+      emit(BookDetailLoaded(
+        book: currentState.book,
+        userBook: updatedUserBookStatus,
+      ));
+    } catch (e) {
+      emit(BookDetailError(message: e.toString()));
+    }
+  }
+
+  Future<void> _onBookDetailUpdateProgress(
+    BookDetailUpdateProgress event,
+    Emitter<BookDetailState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! BookDetailLoaded || currentState.userBook == null) {
+      return;
+    }
+
+    try {
+      // Actualizar progreso
+      final updatedBookUser = await bookUserRepository.updateReadingProgress(
+        id: event.bookUserId,
+        currentPage: event.currentPage,
+      );
+
+      // Crear estado simplificado actualizado
+      final updatedUserBookStatus = UserBookStatus(
+        id: updatedBookUser.id!,
+        status: updatedBookUser.status,
+        currentPage: updatedBookUser.currentPage,
+      );
+
+      // Emitir nuevo estado
+      emit(BookDetailLoaded(
+        book: currentState.book,
+        userBook: updatedUserBookStatus,
+      ));
+    } catch (e) {
+      emit(BookDetailError(message: e.toString()));
+    }
   }
 
   Future<void> _onBookDetailLoad(
