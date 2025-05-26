@@ -24,6 +24,17 @@ abstract class IBookUserRepository {
     String status = 'to-read',
   });
 
+  Future<BookUserDto> updateProgress({
+    required String id,
+    required int currentPage,
+    required bool markAsCompleted,
+  });
+
+  Future<BookUserDto> updateStatus({
+    required String id,
+    required String status,
+  });
+
   /// Actualiza el progreso de lectura de un libro
   Future<BookUserDto> updateReadingProgress({
     required String id,

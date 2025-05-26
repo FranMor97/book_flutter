@@ -177,6 +177,64 @@ class DioBookUserRepository implements IBookUserRepository {
   }
 
   @override
+  Future<BookUserDto> updateProgress({
+    required String id,
+    required int currentPage,
+    required bool markAsCompleted,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '$_baseUrl$_bookUsersEndpoint/$id',
+        data: {
+          'currentPage': currentPage,
+          if (markAsCompleted) 'status': 'completed',
+        },
+      );
+
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw Exception('Error al actualizar el progreso: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<BookUserDto> updateStatus({
+    required String id,
+    required String status,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '$_baseUrl$_bookUsersEndpoint/$id',
+        data: {'status': status},
+      );
+
+      if (response.data is Map<String, dynamic> &&
+          response.data.containsKey('data') &&
+          response.data['data'] is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data['data']);
+      } else if (response.data is Map<String, dynamic>) {
+        return BookUserDto.fromJson(response.data);
+      } else {
+        throw Exception('Formato de respuesta inesperado: ${response.data}');
+      }
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw Exception('Error al actualizar el estado: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<BookUserDto> addReview({
     required String id,
     required ReviewDto review,

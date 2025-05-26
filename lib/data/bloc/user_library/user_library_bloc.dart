@@ -24,6 +24,73 @@ class UserLibraryBloc extends Bloc<UserLibraryEvent, UserLibraryState> {
     on<UserLibraryRemoveBook>(_onRemoveBook);
     on<UserLibraryAddReview>(_onAddReview);
     on<UserLibraryAddNote>(_onAddNote);
+    on<UserLibraryUpdateProgress>(_onUpdateProgress);
+    on<UserLibraryUpdateStatus>(_onUpdateStatus);
+  }
+
+  Future<void> _onUpdateProgress(
+    UserLibraryUpdateProgress event,
+    Emitter<UserLibraryState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! UserLibraryLoaded) {
+      return;
+    }
+
+    try {
+      final updatedBook = await bookUserRepository.updateProgress(
+        id: event.bookUserId,
+        currentPage: event.currentPage,
+        markAsCompleted: event.markAsCompleted,
+      );
+
+      final updatedBooks = currentState.books.map((book) {
+        if (book.id == event.bookUserId) {
+          return updatedBook;
+        }
+        return book;
+      }).toList();
+
+      emit(UserLibraryLoaded(
+        books: updatedBooks,
+        currentStatus: currentState.currentStatus,
+        userId: currentState.userId,
+      ));
+    } catch (e) {
+      emit(UserLibraryError(message: e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateStatus(
+    UserLibraryUpdateStatus event,
+    Emitter<UserLibraryState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! UserLibraryLoaded) {
+      return;
+    }
+
+    try {
+      final updatedBook = await bookUserRepository.updateStatus(
+        id: event.bookUserId,
+        status: event.status,
+      );
+
+      final updatedBooks = currentState.books.map((book) {
+        if (book.id == event.bookUserId) {
+          return updatedBook;
+        }
+        return book;
+      }).toList();
+
+      emit(UserLibraryLoaded(
+        books: updatedBooks,
+        currentStatus: currentState.currentStatus,
+        userId: currentState.userId,
+      ));
+    } catch (e) {
+      emit(UserLibraryError(message: e.toString()));
+    }
   }
 
   Future<void> _onLoadBooks(
@@ -154,7 +221,7 @@ class UserLibraryBloc extends Bloc<UserLibraryEvent, UserLibraryState> {
     }
 
     try {
-      final updatedBook = await bookUserRepository.addReview(
+      final updatedBookUser = await bookUserRepository.addReview(
         id: event.bookUserId,
         review: event.review,
       );
@@ -162,7 +229,7 @@ class UserLibraryBloc extends Bloc<UserLibraryEvent, UserLibraryState> {
       // Actualizar el libro en la lista
       final updatedBooks = currentState.books.map((book) {
         if (book.id == event.bookUserId) {
-          return updatedBook;
+          return updatedBookUser;
         }
         return book;
       }).toList();

@@ -1,4 +1,3 @@
-// lib/data/bloc/user_library/user_library_event.dart
 part of 'user_library_bloc.dart';
 
 @immutable
@@ -55,4 +54,32 @@ class UserLibraryAddNote extends UserLibraryEvent {
 
   @override
   List<Object?> get props => [bookUserId, note];
+}
+
+class UserLibraryUpdateProgress extends UserLibraryEvent {
+  final String bookUserId;
+  final int currentPage;
+  final bool markAsCompleted;
+
+  const UserLibraryUpdateProgress({
+    required this.bookUserId,
+    required this.currentPage,
+    this.markAsCompleted = false,
+  });
+
+  @override
+  List<Object?> get props => [bookUserId, currentPage, markAsCompleted];
+}
+
+class UserLibraryUpdateStatus extends UserLibraryEvent {
+  final String bookUserId;
+  final String status;
+
+  const UserLibraryUpdateStatus({
+    required this.bookUserId,
+    required this.status,
+  });
+
+  @override
+  List<Object?> get props => [bookUserId, status];
 }
