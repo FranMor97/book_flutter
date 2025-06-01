@@ -59,6 +59,7 @@ class BookCommentsBloc extends Bloc<BookCommentsEvent, BookCommentsState> {
     }
   }
 
+  // book_comments_bloc.dart
   Future<void> _onBookCommentsAddComment(
     BookCommentsAddComment event,
     Emitter<BookCommentsState> emit,
@@ -69,22 +70,14 @@ class BookCommentsBloc extends Bloc<BookCommentsEvent, BookCommentsState> {
     emit(BookCommentsSubmitting());
 
     try {
-      // Si tenemos bookUserId, añadir la reseña a través de bookUserRepository
-      if (event.bookUserId != null && event.bookUserId!.isNotEmpty) {
-        await bookUserRepository.addReview(
-          id: event.bookUserId!,
-          review: event.review,
-        );
-      } else {
-        // Si no tenemos bookUserId, añadir la valoración directamente
-        await bookRepository.addBookComment(
-          bookId: event.bookId,
-          text: event.review.text,
-          rating: event.review.rating,
-          title: event.review.title,
-          isPublic: event.review.isPublic,
-        );
-      }
+      // Siempre usar bookRepository.addBookComment
+      final newComment = await bookRepository.addBookComment(
+        bookId: event.bookId,
+        text: event.review.text,
+        rating: event.review.rating,
+        title: event.review.title,
+        isPublic: event.review.isPublic,
+      );
 
       // Recargar comentarios
       add(BookCommentsLoad(bookId: event.bookId));
