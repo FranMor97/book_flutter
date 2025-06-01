@@ -1,4 +1,7 @@
 // lib/data/repositories/book_user_repository.dart
+import 'package:book_app_f/models/genre_stats.dart';
+import 'package:book_app_f/models/pages_read_stats.dart';
+
 import '../../models/dtos/book_user_dto.dart';
 
 /// Repositorio abstracto para gestionar la relación usuario-libro
@@ -61,8 +64,14 @@ abstract class IBookUserRepository {
     required ReadingGoalDto goal,
   });
 
+  Future<List<GenreStat>> getFavoriteGenres(String userId, {int limit = 3});
+
   /// Elimina la relación usuario-libro
   Future<void> removeBookFromUser(String id);
+
+  // [period] - Período ('week', 'month', 'year')
+  Future<PagesReadStats> getPagesReadByPeriod(String userId,
+      {String period = 'week'});
 
   /// Obtiene estadísticas de lectura del usuario
   Future<UserReadingStats> getUserReadingStats(String userId);

@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: const Icon(Icons.person_outline,
                             color: Colors.white),
                         onPressed: () {
-                          // Navegar a perfil
+                          context.pushNamed('user-profile');
                         },
                       ),
                     ],
@@ -136,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         // Estadísticas
-                        _buildStatsSection(state.stats),
+                        _buildStatsSection(
+                            state.stats, state.pagesReadThisWeek),
                         const SizedBox(height: 24),
 
                         // Mi biblioteca (antes "Libros en progreso")
@@ -167,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatsSection(UserReadingStats stats) {
+  Widget _buildStatsSection(UserReadingStats stats, int pagesReadThisWeek) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -215,9 +216,9 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                icon: Icons.star,
-                label: 'Rating',
-                value: stats.averageRating.toStringAsFixed(1),
+                icon: Icons.calendar_view_week,
+                label: 'Esta semana',
+                value: '$pagesReadThisWeek págs',
                 gradient: const [Color(0xFFF59E0B), Color(0xFFEF4444)],
               ),
             ),

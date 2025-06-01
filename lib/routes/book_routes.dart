@@ -3,12 +3,14 @@ import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
 import 'package:book_app_f/data/bloc/home/home_bloc.dart';
 import 'package:book_app_f/data/bloc/user_library/user_library_bloc.dart'; // Importar el nuevo bloc
+import 'package:book_app_f/data/bloc/user_profile/user_profile_bloc.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/book_comments_screen.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
 import 'package:book_app_f/screens/home_screen/home_screen.dart';
+import 'package:book_app_f/screens/user_screens/user_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -42,6 +44,7 @@ class AppRouter {
   static const String userLibrary = 'user-library'; // Nueva ruta
   static const String main = 'main';
   static const String bookComments = 'book-comments';
+  static const String userProfile = 'user-profile';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -53,6 +56,7 @@ class AppRouter {
   static const String userLibraryPath = '/library'; // Nueva ruta
   static const String mainPath = '/';
   static const String bookCommentsPath = '/book/:id/comments';
+  static const String userProfilePath = '/profile';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -142,6 +146,17 @@ class AppRouter {
           final bookId = state.pathParameters['id']!;
           return BookCommentsScreen(bookId: bookId);
         },
+      ),
+      GoRoute(
+        name: userProfile,
+        path: userProfilePath,
+        builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
+          create: (context) => UserProfileBloc(
+            userRepository: getIt<IUserRepository>(),
+          )..add(UserProfileLoad()),
+          child: const UserProfileScreen(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

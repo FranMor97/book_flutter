@@ -182,6 +182,40 @@ class ApiUserRepository implements IUserRepository {
     }
   }
 
+  @override
+  Future<UserDto> updateProfile(UserDto userDto) async {
+    try {
+      // Realizar petición HTTP usando Dio
+      final response = await _dio.patch(
+        '$_baseUrl/auth/profile',
+        data: userDto.toJsonForUpdate(),
+      );
+
+      // Obtener datos del usuario desde la respuesta
+      final responseData = response.data;
+      final UserDto userData = responseData['data'] != null
+          ? UserDto.fromJson(responseData['data'])
+          : UserDto.fromJson(responseData);
+
+      // Guardar en caché
+      await _cacheManager.saveUser(userData);
+
+      return userData;
+    } on DioException catch (e) {
+      // Manejo personalizado de errores de la API
+      if (e.response != null) {
+        final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+        throw Exception(errorMessage);
+      }
+
+      // Errores de red u otros
+      throw Exception('No se pudo conectar al servidor: ${e.message}');
+    } catch (e) {
+      // Otros errores inesperados
+      throw Exception('Error al actualizar perfil: ${e.toString()}');
+    }
+  }
+
   /// Guarda el token de autenticación
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -231,7 +265,9 @@ class CacheManager {
 /// Interfaz para el almacenamiento de caché
 abstract class CacheStore {
   Future<void> put(String key, String value);
+
   Future<String?> get(String key);
+
   Future<void> delete(String key);
 }
 

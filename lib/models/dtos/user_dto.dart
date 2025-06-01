@@ -121,6 +121,46 @@ class UserDto {
     );
   }
 
+  Map<String, dynamic> toJsonForUpdate() {
+    final json = toJson(); // Obtiene el JSON normal
+
+    // Eliminar campos que no se deben actualizar
+    json.remove('_id');
+    json.remove('email');
+    json.remove('password');
+    json.remove('role');
+    json.remove('idNumber');
+    json.remove('registrationDate');
+
+    return json;
+  }
+
+// También agregar un factory para actualización
+  factory UserDto.forUpdate({
+    required String id,
+    required String appName,
+    required String firstName,
+    required String lastName1,
+    String? lastName2,
+    required String mobilePhone,
+    required DateTime birthDate,
+    String? avatar,
+  }) {
+    return UserDto(
+      id: id,
+      appName: appName,
+      firstName: firstName,
+      email: '', // No se actualizará
+      lastName1: lastName1,
+      lastName2: lastName2,
+      idNumber: '', // No se actualizará
+      mobilePhone: mobilePhone,
+      birthDate: birthDate,
+      registrationDate: DateTime.now(),
+      avatar: avatar,
+    );
+  }
+
   Map<String, dynamic> toJsonForRegistration() {
     final json = toJson(); // Obtiene el JSON normal
     json.remove('_id'); // Elimina el campo _id

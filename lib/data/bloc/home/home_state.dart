@@ -22,13 +22,17 @@ class HomeLoaded extends HomeState {
   final List<BookUserDto> recentlyFinished;
   final List<BookDto> recommendations;
   final String? userId;
+  final int pagesReadThisWeek;
+  final List<GenreStat> favoriteGenres;
 
   const HomeLoaded({
     required this.currentlyReading,
     required this.stats,
     required this.recentlyFinished,
     required this.recommendations,
+    this.pagesReadThisWeek = 0,
     this.userId,
+    this.favoriteGenres = const [],
   });
 
   @override
@@ -38,6 +42,8 @@ class HomeLoaded extends HomeState {
         recentlyFinished,
         recommendations,
         userId,
+        pagesReadThisWeek,
+        favoriteGenres,
       ];
 
   HomeLoaded copyWith({
@@ -45,6 +51,9 @@ class HomeLoaded extends HomeState {
     UserReadingStats? stats,
     List<BookUserDto>? recentlyFinished,
     List<BookDto>? recommendations,
+    String? userId,
+    int? pagesReadThisWeek,
+    List<GenreStat>? favoriteGenres,
   }) {
     return HomeLoaded(
       currentlyReading: currentlyReading ?? this.currentlyReading,
@@ -52,6 +61,8 @@ class HomeLoaded extends HomeState {
       recentlyFinished: recentlyFinished ?? this.recentlyFinished,
       recommendations: recommendations ?? this.recommendations,
       userId: userId ?? this.userId,
+      pagesReadThisWeek: pagesReadThisWeek ?? this.pagesReadThisWeek,
+      favoriteGenres: favoriteGenres ?? this.favoriteGenres,
     );
   }
 }

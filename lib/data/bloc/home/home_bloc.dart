@@ -1,6 +1,7 @@
 // lib/data/bloc/home/home_bloc.dart
 import 'package:bloc/bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/models/genre_stats.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
@@ -41,12 +42,16 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         _getReadingStats(user),
         _getRecentlyFinished(user),
         _getRecommendations(),
+        _getPagesReadThisWeek(user),
+        _getFavoriteGenres(user),
       ]);
 
       final currentlyReading = results[0] as List<BookUserDto>;
       final stats = results[1] as UserReadingStats;
       final recentlyFinished = results[2] as List<BookUserDto>;
       final recommendations = results[3] as List<BookDto>;
+      final pagesReadThisWeek = results[4] as int;
+      final favoriteGenres = results[5] as List<GenreStat>;
 
       emit(HomeLoaded(
         currentlyReading: currentlyReading,
@@ -54,9 +59,29 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         recentlyFinished: recentlyFinished,
         recommendations: recommendations,
         userId: user,
+        pagesReadThisWeek: pagesReadThisWeek,
       ));
     } catch (e) {
       emit(HomeError(message: e.toString()));
+    }
+  }
+
+  Future<int> _getPagesReadThisWeek(String userId) async {
+    try {
+      final stats = await bookUserRepository.getPagesReadByPeriod(userId);
+      return stats.pagesRead;
+    } catch (e) {
+      print('Error al obtener páginas por semana: $e');
+      return 0;
+    }
+  }
+
+  Future<List<GenreStat>> _getFavoriteGenres(String userId) async {
+    try {
+      return await bookUserRepository.getFavoriteGenres(userId, limit: 3);
+    } catch (e) {
+      print('Error al obtener géneros favoritos: $e');
+      return []; // En caso de error, devolver lista vacía
     }
   }
 

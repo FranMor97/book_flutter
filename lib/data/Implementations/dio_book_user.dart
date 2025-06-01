@@ -1,5 +1,7 @@
 // lib/data/implementations/dio_book_user_repository.dart
 import 'package:book_app_f/models/book_user_creation_dto.dart';
+import 'package:book_app_f/models/genre_stats.dart';
+import 'package:book_app_f/models/pages_read_stats.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../models/dtos/book_user_dto.dart';
@@ -173,6 +175,42 @@ class DioBookUserRepository implements IBookUserRepository {
       throw _handleDioException(e);
     } catch (e) {
       throw Exception('Error al actualizar progreso: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<PagesReadStats> getPagesReadByPeriod(String userId,
+      {String period = 'week'}) async {
+    try {
+      final url = '$_baseUrl$_bookUsersEndpoint/user/$userId/pages-by-period';
+      final response = await _dio.get(
+        '$_baseUrl$_bookUsersEndpoint/user/$userId/pages-by-period',
+        queryParameters: {'period': period},
+      );
+
+      return PagesReadStats.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw Exception('Error al obtener páginas leídas: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<GenreStat>> getFavoriteGenres(String userId,
+      {int limit = 3}) async {
+    try {
+      final response = await _dio.get(
+        '$_baseUrl$_bookUsersEndpoint/user/$userId/favorite-genres',
+        queryParameters: {'limit': limit},
+      );
+
+      final List<dynamic> topGenres = response.data['topGenres'] ?? [];
+      return topGenres.map((genre) => GenreStat.fromJson(genre)).toList();
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      throw Exception('Error al obtener géneros favoritos: ${e.toString()}');
     }
   }
 

@@ -15,4 +15,6 @@ abstract class IUserRepository {
   Future<void> logout();
 
   Future<UserDto?> getUserWithStoredToken();
+
+  Future<UserDto> updateProfile(UserDto userDto);
 }

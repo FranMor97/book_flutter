@@ -187,8 +187,11 @@ class BookDetailScreen extends StatelessWidget {
                     ),
                     const Spacer(),
                     if (book.pageCount != null)
+                      // Mostrar progreso actual si está leyendo el libro
                       Text(
-                        '${book.pageCount} páginas',
+                        userBook != null && userBook.status == 'reading'
+                            ? '${userBook.currentPage} / ${book.pageCount} páginas'
+                            : '${book.pageCount} páginas',
                         style: const TextStyle(color: Colors.grey),
                       ),
                   ],
@@ -328,6 +331,15 @@ class BookDetailScreen extends StatelessWidget {
                       );
                 } else if (userBook.status == 'reading') {
                   _showUpdateProgressDialog(context, book, userBook);
+                } else if (userBook.status == 'completed') {
+                  // Cuando quieres releer un libro completado, cambiar a "leyendo" y resetear progreso
+                  context.read<BookDetailBloc>().add(
+                        BookDetailUpdateStatusWithProgress(
+                          bookUserId: userBook.id,
+                          status: 'reading',
+                          currentPage: 0, // Resetear progreso
+                        ),
+                      );
                 }
               },
               style: FilledButton.styleFrom(
@@ -504,7 +516,7 @@ class BookDetailScreen extends StatelessWidget {
     );
   }
 
-// Diálogo para confirmar cambio a estado "completado"
+  // Diálogo para confirmar cambio a estado "completado"
   void _showCompletionDialog(BuildContext context, UserBookStatus userBook,
       BookDetailBloc bloc, int page) {
     showDialog(
@@ -581,6 +593,7 @@ class BookDetailScreen extends StatelessWidget {
                   'to-read',
                   userBook.status,
                   book.id!,
+                  userBook.id,
                   bloc,
                 ),
                 _buildStatusOption(
@@ -589,6 +602,7 @@ class BookDetailScreen extends StatelessWidget {
                   'reading',
                   userBook.status,
                   book.id!,
+                  userBook.id,
                   bloc,
                 ),
                 _buildStatusOption(
@@ -597,6 +611,7 @@ class BookDetailScreen extends StatelessWidget {
                   'completed',
                   userBook.status,
                   book.id!,
+                  userBook.id,
                   bloc,
                 ),
                 _buildStatusOption(
@@ -605,6 +620,7 @@ class BookDetailScreen extends StatelessWidget {
                   'abandoned',
                   userBook.status,
                   book.id!,
+                  userBook.id,
                   bloc,
                 ),
               ],
@@ -621,6 +637,7 @@ class BookDetailScreen extends StatelessWidget {
     String status,
     String currentStatus,
     String bookId,
+    String bookUserId,
     BookDetailBloc bloc,
   ) {
     final isSelected = status == currentStatus;
@@ -638,24 +655,52 @@ class BookDetailScreen extends StatelessWidget {
         groupValue: currentStatus,
         onChanged: (value) {
           Navigator.pop(context);
-          bloc.add(
-            BookDetailUpdateStatus(
-              bookId: bookId,
-              status: value!,
-            ),
-          );
+
+          // Si estamos cambiando a "leyendo" y no estábamos en ese estado antes,
+          // o si estamos volviendo a "leyendo" desde "completado" (releer), resetear el progreso
+          if (value == 'reading' &&
+              (currentStatus != 'reading' || currentStatus == 'completed')) {
+            bloc.add(
+              BookDetailUpdateStatusWithProgress(
+                bookUserId: bookUserId,
+                status: value!,
+                currentPage: 0, // Resetear a 0 páginas
+              ),
+            );
+          } else {
+            // Para otros cambios de estado, solo actualizar el estado
+            bloc.add(
+              BookDetailUpdateStatus(
+                bookId: bookId,
+                status: value!,
+              ),
+            );
+          }
         },
         activeColor: const Color(0xFF8B5CF6),
       ),
       onTap: () {
         if (status != currentStatus) {
           Navigator.pop(context);
-          bloc.add(
-            BookDetailUpdateStatus(
-              bookId: bookId,
-              status: status,
-            ),
-          );
+
+          // Aplicar la misma lógica de reseteo aquí también
+          if (status == 'reading' &&
+              (currentStatus != 'reading' || currentStatus == 'completed')) {
+            bloc.add(
+              BookDetailUpdateStatusWithProgress(
+                bookUserId: bookUserId,
+                status: status,
+                currentPage: 0, // Resetear a 0 páginas
+              ),
+            );
+          } else {
+            bloc.add(
+              BookDetailUpdateStatus(
+                bookId: bookId,
+                status: status,
+              ),
+            );
+          }
         }
       },
     );
