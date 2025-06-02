@@ -1,6 +1,9 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
 import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
+import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
@@ -9,7 +12,7 @@ import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
 
 class ReadingGroupsScreen extends StatelessWidget {
-  const ReadingGroupsScreen({Key? key}) : super(key: key);
+  const ReadingGroupsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
