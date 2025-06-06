@@ -79,13 +79,19 @@ class FriendshipBloc extends Bloc<FriendshipEvent, FriendshipState> {
       emit(FriendshipRequestSent(friendship: friendship));
 
       // Volver al estado anterior pero actualizado
-      if (currentState is FriendshipSearchResults) {
-        add(FriendshipSearchUsers(query: event.searchQuery ?? ''));
+      if (event.searchQuery != null && event.searchQuery!.isNotEmpty) {
+        add(FriendshipSearchUsers(query: event.searchQuery!));
       } else {
         add(FriendshipLoadFriends());
       }
     } catch (e) {
       emit(FriendshipError(message: e.toString()));
+
+      // Restaurar estado anterior en caso de error
+      if (currentState is FriendshipState &&
+          !(currentState is FriendshipError)) {
+        emit(currentState);
+      }
     }
   }
 
@@ -109,8 +115,19 @@ class FriendshipBloc extends Bloc<FriendshipEvent, FriendshipState> {
 
       // Recargar solicitudes pendientes
       add(FriendshipLoadRequests());
+
+      // Si se aceptó, también recargar amigos
+      if (event.status == 'accepted') {
+        add(FriendshipLoadFriends());
+      }
     } catch (e) {
       emit(FriendshipError(message: e.toString()));
+
+      // Restaurar estado anterior en caso de error
+      if (currentState is FriendshipState &&
+          !(currentState is FriendshipError)) {
+        emit(currentState);
+      }
     }
   }
 
@@ -130,6 +147,12 @@ class FriendshipBloc extends Bloc<FriendshipEvent, FriendshipState> {
       add(FriendshipLoadFriends());
     } catch (e) {
       emit(FriendshipError(message: e.toString()));
+
+      // Restaurar estado anterior en caso de error
+      if (currentState is FriendshipState &&
+          !(currentState is FriendshipError)) {
+        emit(currentState);
+      }
     }
   }
 }

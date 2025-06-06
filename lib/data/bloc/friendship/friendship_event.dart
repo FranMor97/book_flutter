@@ -24,7 +24,7 @@ class FriendshipSearchUsers extends FriendshipEvent {
 
 class FriendshipSendRequest extends FriendshipEvent {
   final String recipientId;
-  final String? searchQuery; // Para actualizar resultados de búsqueda
+  final String? searchQuery; // Para actualizar resultados de búsqueda después
 
   const FriendshipSendRequest({
     required this.recipientId,

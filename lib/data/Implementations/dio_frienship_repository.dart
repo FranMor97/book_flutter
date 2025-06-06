@@ -1,5 +1,6 @@
 // lib/data/implementations/dio_friendship_repository.dart
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
+import 'package:book_app_f/models/dtos/friendship_dto.dart';
 import 'package:book_app_f/models/friendship.dart';
 import 'package:book_app_f/models/user.dart';
 import 'package:dio/dio.dart';
@@ -24,13 +25,13 @@ class DioFriendshipRepository implements IFriendshipRepository {
       final response = await _dio.get('$_baseUrl$_friendshipsEndpoint/friends');
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> friendsData = responseData['data'];
-          return friendsData.map((item) => User.fromJson(item)).toList();
+          return friendsData
+              .map((item) => User.fromJson(_normalizeUserData(item)))
+              .toList();
         }
       }
 
@@ -49,13 +50,24 @@ class DioFriendshipRepository implements IFriendshipRepository {
           await _dio.get('$_baseUrl$_friendshipsEndpoint/requests');
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> requestsData = responseData['data'];
-          return requestsData.map((item) => Friendship.fromJson(item)).toList();
+
+          // Convertir a FriendshipDto y luego a Friendship
+          return requestsData.map((item) {
+            final itemMap = _ensureMapResponse(item);
+
+            // Si hay campo requesterId y es un objeto, normalizarlo
+            if (itemMap.containsKey('requesterId') &&
+                itemMap['requesterId'] is Map) {
+              final requesterMap = _ensureMapResponse(itemMap['requesterId']);
+              itemMap['requester'] = requesterMap;
+            }
+
+            return FriendshipDto.fromJson(itemMap).toDomain();
+          }).toList();
         }
       }
 
@@ -69,7 +81,7 @@ class DioFriendshipRepository implements IFriendshipRepository {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+  Future<List<UserFriendshipStatus>> searchUsers(String query) async {
     try {
       final response = await _dio.get(
         '$_baseUrl$_friendshipsEndpoint/search-users',
@@ -77,13 +89,15 @@ class DioFriendshipRepository implements IFriendshipRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> usersData = responseData['data'];
-          return usersData.map((item) => item as Map<String, dynamic>).toList();
+
+          return usersData.map((item) {
+            final itemMap = _ensureMapResponse(item);
+            return UserFriendshipStatus.fromJson(itemMap);
+          }).toList();
         }
       }
 
@@ -104,12 +118,11 @@ class DioFriendshipRepository implements IFriendshipRepository {
       );
 
       if (response.statusCode == 201 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
-          return Friendship.fromJson(responseData['data']);
+          final friendshipData = _ensureMapResponse(responseData['data']);
+          return FriendshipDto.fromJson(friendshipData).toDomain();
         }
       }
 
@@ -131,12 +144,11 @@ class DioFriendshipRepository implements IFriendshipRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
-          return Friendship.fromJson(responseData['data']);
+          final friendshipData = _ensureMapResponse(responseData['data']);
+          return FriendshipDto.fromJson(friendshipData).toDomain();
         }
       }
 
@@ -159,11 +171,53 @@ class DioFriendshipRepository implements IFriendshipRepository {
     }
   }
 
+  // Método para asegurar que las respuestas sean Map<String, dynamic>
+  Map<String, dynamic> _ensureMapResponse(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      return data;
+    } else if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    } else {
+      throw Exception('Formato de respuesta inesperado: $data');
+    }
+  }
+
+  // Método para normalizar los datos de usuario
+  Map<String, dynamic> _normalizeUserData(dynamic userData) {
+    final Map<String, dynamic> normalizedUser = _ensureMapResponse(userData);
+
+    // Convertir _id a id si existe
+    if (normalizedUser.containsKey('_id') &&
+        !normalizedUser.containsKey('id')) {
+      normalizedUser['id'] = normalizedUser['_id'];
+    }
+
+    // Asegurar campos requeridos con valores por defecto
+    normalizedUser['firstName'] = normalizedUser['firstName'] ?? '';
+    normalizedUser['lastName1'] = normalizedUser['lastName1'] ?? '';
+    normalizedUser['lastName2'] = normalizedUser['lastName2'] ?? '';
+    normalizedUser['email'] = normalizedUser['email'] ?? '';
+    normalizedUser['avatar'] = normalizedUser['avatar'] ?? '';
+
+    return normalizedUser;
+  }
+
   Exception _handleDioException(DioException e) {
     final statusCode = e.response?.statusCode;
-    final errorMessage = e.response?.data is Map
-        ? e.response?.data['error'] ?? 'Error desconocido'
-        : 'Error desconocido';
+    String errorMessage = 'Error desconocido';
+
+    try {
+      // Intentar extraer el mensaje de error de la respuesta
+      if (e.response?.data is Map) {
+        errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+      } else if (e.response?.data is String) {
+        errorMessage = e.response?.data;
+      } else {
+        errorMessage = e.message ?? 'Error desconocido';
+      }
+    } catch (_) {
+      errorMessage = e.message ?? 'Error desconocido';
+    }
 
     switch (statusCode) {
       case 400:
@@ -179,7 +233,7 @@ class DioFriendshipRepository implements IFriendshipRepository {
       case 500:
         return Exception('Error del servidor: $errorMessage');
       default:
-        return Exception('Error de conexión: ${e.message}');
+        return Exception('Error de conexión: $errorMessage');
     }
   }
 }

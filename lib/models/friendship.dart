@@ -25,40 +25,47 @@ class Friendship {
     this.recipient,
   });
 
-  factory Friendship.fromJson(Map<String, dynamic> json) {
-    return Friendship(
-      id: json['_id'] ?? json['id'],
-      requesterId: json['requesterId'],
-      recipientId: json['recipientId'],
-      status: _statusFromString(json['status']),
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
-          : DateTime.now(),
-      requester:
-          json['requester'] != null ? User.fromJson(json['requester']) : null,
-      recipient:
-          json['recipient'] != null ? User.fromJson(json['recipient']) : null,
-    );
-  }
+  // Para propósitos de la UI
+  bool get isPending => status == FriendshipStatus.pending;
+  bool get isAccepted => status == FriendshipStatus.accepted;
+  bool get isRejected => status == FriendshipStatus.rejected;
+  bool get isBlocked => status == FriendshipStatus.blocked;
 
-  static FriendshipStatus _statusFromString(String status) {
-    switch (status) {
-      case 'pending':
-        return FriendshipStatus.pending;
-      case 'accepted':
-        return FriendshipStatus.accepted;
-      case 'rejected':
-        return FriendshipStatus.rejected;
-      case 'blocked':
-        return FriendshipStatus.blocked;
-      default:
-        return FriendshipStatus.pending;
+  // Método auxiliar para obtener el otro usuario desde la perspectiva de un usuario
+  User? getOtherUser(String userId) {
+    if (requesterId == userId) {
+      return recipient;
+    } else if (recipientId == userId) {
+      return requester;
     }
+    return null;
   }
 
+  // Método para determinar si el usuario actual es el solicitante
+  bool isUserRequester(String userId) {
+    return requesterId == userId;
+  }
+
+  // Método para determinar si el usuario actual puede responder a la solicitud
+  bool canRespond(String userId) {
+    return recipientId == userId && status == FriendshipStatus.pending;
+  }
+
+  // Método toJson para serialización manual si es necesario
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'requesterId': requesterId,
+      'recipientId': recipientId,
+      'status': _statusToString(status),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'requester': requester?.toJson(),
+      'recipient': recipient?.toJson(),
+    };
+  }
+
+  // Métodos estáticos para conversión de estados
   static String _statusToString(FriendshipStatus status) {
     switch (status) {
       case FriendshipStatus.pending:
@@ -74,14 +81,18 @@ class Friendship {
     }
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'requesterId': requesterId,
-      'recipientId': recipientId,
-      'status': _statusToString(status),
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-    };
+  static FriendshipStatus _statusFromString(String status) {
+    switch (status) {
+      case 'pending':
+        return FriendshipStatus.pending;
+      case 'accepted':
+        return FriendshipStatus.accepted;
+      case 'rejected':
+        return FriendshipStatus.rejected;
+      case 'blocked':
+        return FriendshipStatus.blocked;
+      default:
+        return FriendshipStatus.pending;
+    }
   }
 }

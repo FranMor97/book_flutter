@@ -36,7 +36,7 @@ class FriendshipRequestsLoaded extends FriendshipState {
 }
 
 class FriendshipSearchResults extends FriendshipState {
-  final List<Map<String, dynamic>> results;
+  final List<UserFriendshipStatus> results;
 
   const FriendshipSearchResults({required this.results});
 

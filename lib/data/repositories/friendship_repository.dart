@@ -1,4 +1,5 @@
 // lib/data/repositories/friendship_repository.dart
+import 'package:book_app_f/models/dtos/friendship_dto.dart';
 import 'package:book_app_f/models/friendship.dart';
 import 'package:book_app_f/models/user.dart';
 
@@ -10,8 +11,8 @@ abstract class IFriendshipRepository {
   Future<List<Friendship>> getFriendRequests();
 
   /// Busca usuarios por nombre o email
-  /// Retorna usuarios junto con su estado de amistad
-  Future<List<Map<String, dynamic>>> searchUsers(String query);
+  /// Retorna usuarios con su estado de amistad
+  Future<List<UserFriendshipStatus>> searchUsers(String query);
 
   /// Envía una solicitud de amistad
   Future<Friendship> sendFriendRequest(String recipientId);
@@ -22,4 +23,37 @@ abstract class IFriendshipRepository {
 
   /// Elimina una amistad
   Future<void> removeFriend(String friendshipId);
+}
+
+/// Clase para contener un usuario con su estado de amistad
+class UserFriendshipStatus {
+  final User user;
+  final String? friendshipStatus;
+  final String? friendshipId;
+  final bool isRequester;
+
+  UserFriendshipStatus({
+    required this.user,
+    this.friendshipStatus,
+    this.friendshipId,
+    this.isRequester = false,
+  });
+
+  factory UserFriendshipStatus.fromJson(Map<String, dynamic> json) {
+    return UserFriendshipStatus(
+      user: User.fromJson(json),
+      friendshipStatus: json['friendshipStatus'] as String?,
+      friendshipId: json['friendshipId'] as String?,
+      isRequester: json['isRequester'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      ...user.toJson(),
+      'friendshipStatus': friendshipStatus,
+      'friendshipId': friendshipId,
+      'isRequester': isRequester,
+    };
+  }
 }
