@@ -14,7 +14,7 @@ Future<void> main() async {
   } else {
     env = Environment.dev;
   }
-  await configureDependencies(env: env);
+  await configureDependencies(env: Environment.prod);
 
   runApp(const MyApp());
 }

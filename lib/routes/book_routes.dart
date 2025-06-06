@@ -1,15 +1,23 @@
 // lib/routes/book_routes.dart
 import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
+import 'package:book_app_f/data/bloc/friendship/friendship_bloc.dart';
 import 'package:book_app_f/data/bloc/home/home_bloc.dart';
+import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/bloc/user_library/user_library_bloc.dart'; // Importar el nuevo bloc
 import 'package:book_app_f/data/bloc/user_profile/user_profile_bloc.dart';
+import 'package:book_app_f/data/repositories/friendship_repository.dart';
+import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/book_comments_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/reading_groups.dart';
+import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
 import 'package:book_app_f/screens/home_screen/home_screen.dart';
+import 'package:book_app_f/screens/user_screens/friends_screens.dart';
 import 'package:book_app_f/screens/user_screens/user_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -45,6 +53,11 @@ class AppRouter {
   static const String main = 'main';
   static const String bookComments = 'book-comments';
   static const String userProfile = 'user-profile';
+  static const String readingGroups = 'reading-groups';
+  static const String searchGroups = 'search-groups';
+  static const String groupChat = 'group-chat';
+  static const String friendScreen =
+      'friend-screen'; // Pantalla de amigos (opcional)
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -57,6 +70,11 @@ class AppRouter {
   static const String mainPath = '/';
   static const String bookCommentsPath = '/book/:id/comments';
   static const String userProfilePath = '/profile';
+  static const String readingGroupsPath = '/reading-groups';
+  static const String searchGroupsPath = '/search-groups';
+  static const String groupChatPath = '/group-chat/:id';
+  static const String friendScreenPath =
+      '/friend-screen'; // Pantalla de amigos (opcional)
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -157,6 +175,67 @@ class AppRouter {
           )..add(UserProfileLoad()),
           child: const UserProfileScreen(),
         ),
+      ),
+      GoRoute(
+        name: readingGroups,
+        path: readingGroupsPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => ReadingGroupBloc(
+            readingGroupRepository: getIt<IReadingGroupRepository>(),
+          )..add(ReadingGroupLoadUserGroups()),
+          child: const ReadingGroupsScreen(),
+        ),
+      ),
+      GoRoute(
+          name: friendScreen,
+          path: friendScreenPath,
+          builder: (context, state) => BlocProvider(
+                key: UniqueKey(),
+                create: (context) => FriendshipBloc(
+                  friendshipRepository: getIt<IFriendshipRepository>(),
+                )..add(FriendshipLoadFriends()),
+                child: const FriendsScreen(),
+              )),
+
+// Búsqueda de grupos
+      GoRoute(
+        name: searchGroups,
+        path: searchGroupsPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => ReadingGroupBloc(
+            readingGroupRepository: getIt<IReadingGroupRepository>(),
+          ),
+          child: const SearchGroupsScreen(),
+        ),
+      ),
+
+// Chat de grupo (necesita el ID del grupo)
+      GoRoute(
+        name: groupChat,
+        path: groupChatPath,
+        builder: (context, state) {
+          final groupId = state.pathParameters['id']!;
+          return BlocProvider(
+            create: (context) => ReadingGroupBloc(
+              readingGroupRepository: getIt<IReadingGroupRepository>(),
+            )..add(ReadingGroupLoadById(groupId: groupId)),
+            child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
+              builder: (context, state) {
+                if (state is ReadingGroupLoaded) {
+                  return GroupChatScreen(group: state.group);
+                }
+
+                // Pantalla de carga mientras se obtiene el grupo
+                return const Scaffold(
+                  backgroundColor: Color(0xFF0A0A0F),
+                  body: Center(
+                    child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+                  ),
+                );
+              },
+            ),
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

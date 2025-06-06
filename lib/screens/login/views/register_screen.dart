@@ -463,7 +463,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ? () {
                                     if (_formKey.currentState?.validate() ??
                                         false) {
-                                      // Crear objeto UserDto para registro
                                       final userDto = UserDto.forRegistration(
                                         appName: _appNameController.text,
                                         firstName: _firstNameController.text,
@@ -480,7 +479,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         birthDate: _birthDate,
                                       );
 
-                                      // Enviar evento de registro
                                       context.read<RegisterBloc>().add(
                                             RegisterSubmitted(userDto: userDto),
                                           );

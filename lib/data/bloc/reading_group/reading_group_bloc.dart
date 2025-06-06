@@ -71,6 +71,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       );
 
       emit(ReadingGroupCreated(group: group));
+
+      // Load user groups after creation
+      add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -92,6 +95,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       );
 
       emit(ReadingGroupUpdated(group: group));
+
+      // Reload the group to show updated information
+      add(ReadingGroupLoadById(groupId: event.groupId));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -113,6 +119,8 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       emit(ReadingGroupPublicSearchResults(
         groups: groups,
         query: event.query,
+        page: event.page,
+        hasMorePages: groups.length >= event.limit,
       ));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -128,6 +136,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     try {
       final group = await readingGroupRepository.joinGroup(event.groupId);
       emit(ReadingGroupJoined(group: group));
+
+      // Reload user groups after joining
+      add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -143,7 +154,7 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       await readingGroupRepository.leaveGroup(event.groupId);
       emit(const ReadingGroupLeft());
 
-      // Recargar grupos del usuario
+      // Reload user groups after leaving
       add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -168,6 +179,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         memberId: event.memberId,
         action: event.action,
       ));
+
+      // Reload group to show updated members
+      add(ReadingGroupLoadById(groupId: event.groupId));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -189,6 +203,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         group: group,
         currentPage: event.currentPage,
       ));
+
+      // Reload group to show updated progress
+      add(ReadingGroupLoadById(groupId: event.groupId));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -198,7 +215,21 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     ReadingGroupLoadMessages event,
     Emitter<ReadingGroupState> emit,
   ) async {
-    emit(ReadingGroupMessagesLoading());
+    // If it's a refresh (page 1), show loading state
+    if (event.page == 1) {
+      emit(ReadingGroupMessagesLoading());
+    } else {
+      // For pagination, we need to keep the current state (don't show loading)
+      // You can add a specific "loading more" state if needed
+      final currentState = state;
+      if (currentState is ReadingGroupMessagesLoaded) {
+        emit(ReadingGroupMessagesLoadingMore(
+          groupId: currentState.groupId,
+          messages: currentState.messages,
+          page: currentState.page,
+        ));
+      }
+    }
 
     try {
       final messages = await readingGroupRepository.getGroupMessages(
@@ -207,12 +238,27 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         limit: event.limit,
       );
 
-      emit(ReadingGroupMessagesLoaded(
-        groupId: event.groupId,
-        messages: messages,
-        page: event.page,
-        isFirstLoad: event.page == 1,
-      ));
+      // If we're loading a page beyond the first, we need to combine messages
+      final currentState = state;
+      if (currentState is ReadingGroupMessagesLoaded && event.page > 1) {
+        final combinedMessages = [...currentState.messages, ...messages];
+        emit(ReadingGroupMessagesLoaded(
+          groupId: event.groupId,
+          messages: combinedMessages,
+          page: event.page,
+          isFirstLoad: false,
+          hasMoreMessages: messages.length >= event.limit,
+        ));
+      } else {
+        // First load or refresh
+        emit(ReadingGroupMessagesLoaded(
+          groupId: event.groupId,
+          messages: messages,
+          page: event.page,
+          isFirstLoad: event.page == 1,
+          hasMoreMessages: messages.length >= event.limit,
+        ));
+      }
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }
@@ -222,6 +268,7 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     ReadingGroupSendMessage event,
     Emitter<ReadingGroupState> emit,
   ) async {
+    // Store current state to return to it if needed
     final currentState = state;
 
     try {
@@ -230,8 +277,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         text: event.text,
       );
 
+      // If we're in the messages state, update it with the new message
       if (currentState is ReadingGroupMessagesLoaded) {
-        // Actualizar la lista de mensajes
+        // Add the new message to the top of the list (most recent first)
         final updatedMessages = [message, ...currentState.messages];
 
         emit(ReadingGroupMessagesLoaded(
@@ -239,17 +287,22 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
           messages: updatedMessages,
           page: currentState.page,
           isFirstLoad: false,
+          hasMoreMessages: currentState.hasMoreMessages,
         ));
       }
 
+      // Emit a specific "message sent" state that can be used for showing a temporary notification
       emit(ReadingGroupMessageSent(message: message));
 
-      if (currentState is ReadingGroupMessagesLoaded) {
+      // Return to the previous state if needed
+      if (currentState is ReadingGroupState &&
+          !(currentState is ReadingGroupMessagesLoaded)) {
         emit(currentState);
       }
     } catch (e) {
       emit(ReadingGroupMessageError(message: e.toString()));
 
+      // Return to the previous state after showing the error
       if (currentState is ReadingGroupState) {
         emit(currentState);
       }

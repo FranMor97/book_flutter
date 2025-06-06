@@ -19,9 +19,13 @@ import 'data/Implementations/api_user_repository.dart' as _i654;
 import 'data/Implementations/dio_auth_repository.dart' as _i506;
 import 'data/Implementations/dio_book_repository.dart' as _i940;
 import 'data/Implementations/dio_book_user.dart' as _i981;
+import 'data/Implementations/dio_frienship_repository.dart' as _i274;
+import 'data/Implementations/dio_reading_group_repository.dart' as _i936;
 import 'data/repositories/auth_repository.dart' as _i593;
 import 'data/repositories/book_repository.dart' as _i438;
 import 'data/repositories/book_user_repository.dart' as _i914;
+import 'data/repositories/friendship_repository.dart' as _i233;
+import 'data/repositories/reading_group_repository.dart' as _i228;
 import 'data/repositories/user_repository.dart' as _i443;
 import 'injection/app_module.dart' as _i984;
 
@@ -66,6 +70,16 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i593.IAuthRepository>(
         () => _i506.DioAuthRepository(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i233.IFriendshipRepository>(
+      () => _i274.DioFriendshipRepository(
+        dio: gh<_i361.Dio>(),
+        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+      ),
+      registerFor: {
+        _dev,
+        _prod,
+      },
+    );
     gh.lazySingleton<_i438.IBookRepository>(
       () => _i940.DioBookRepository(
         dio: gh<_i361.Dio>(),
@@ -93,6 +107,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i654.CacheManager>(
         () => appModule.cacheManager(gh<_i654.CacheStore>()));
+    gh.lazySingleton<_i228.IReadingGroupRepository>(
+        () => _i936.DioReadingGroupRepository(
+              dio: gh<_i361.Dio>(),
+              baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+            ));
     gh.lazySingleton<_i443.IUserRepository>(
       () => _i654.ApiUserRepository(
         dio: gh<_i361.Dio>(),

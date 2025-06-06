@@ -5,8 +5,7 @@ import 'package:book_app_f/models/reading_group.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
-@LazySingleton(
-    as: IReadingGroupRepository, env: [Environment.dev, Environment.prod])
+@LazySingleton(as: IReadingGroupRepository) // ✅ Simplificado
 class DioReadingGroupRepository implements IReadingGroupRepository {
   final Dio _dio;
   final String _baseUrl;
@@ -109,7 +108,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     ReadingGoal? readingGoal,
   }) async {
     try {
-      final data = {};
+      final data = <String, dynamic>{};
 
       if (name != null) data['name'] = name;
       if (description != null) data['description'] = description;
@@ -146,13 +145,14 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     int limit = 10,
   }) async {
     try {
-      final queryParams = {
+      final queryParams = <String, dynamic>{
         'page': page,
         'limit': limit,
       };
 
+      // ✅ FIX: query es String, no int
       if (query != null && query.isNotEmpty) {
-        queryParams['q'] = query as int;
+        queryParams['q'] = query; // ✅ Correcto
       }
 
       final response = await _dio.get(
@@ -245,7 +245,6 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     }
   }
 
-// lib/data/implementations/dio_reading_group_repository.dart (continuación)
   @override
   Future<ReadingGroup> updateReadingProgress({
     required String groupId,

@@ -33,180 +33,175 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => FriendshipBloc(
-        friendshipRepository: getIt<IFriendshipRepository>(),
-      )..add(FriendshipLoadFriends()),
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0F),
-        appBar: AppBar(
-          title: const Text('Amigos', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF1A1A2E),
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF8B5CF6),
-            tabs: const [
-              Tab(text: 'Mis Amigos'),
-              Tab(text: 'Solicitudes'),
-            ],
-            onTap: (index) {
-              if (index == 0) {
-                context.read<FriendshipBloc>().add(FriendshipLoadFriends());
-              } else {
-                context.read<FriendshipBloc>().add(FriendshipLoadRequests());
-              }
-            },
-          ),
-        ),
-        body: Column(
-          children: [
-            // Barra de búsqueda
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Buscar usuarios...',
-                  hintStyle: TextStyle(color: Colors.grey[400]),
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A2E),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
-                  ),
-                ),
-                onSubmitted: (value) {
-                  if (value.length >= 3) {
-                    context
-                        .read<FriendshipBloc>()
-                        .add(FriendshipSearchUsers(query: value));
-                  }
-                },
-              ),
-            ),
-
-            // Contenido principal
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Pestaña de amigos
-                  BlocBuilder<FriendshipBloc, FriendshipState>(
-                    builder: (context, state) {
-                      if (state is FriendshipLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF8B5CF6),
-                          ),
-                        );
-                      }
-
-                      if (state is FriendshipSearching ||
-                          state is FriendshipSearchResults) {
-                        return _buildSearchResults(context, state);
-                      }
-
-                      if (state is FriendshipFriendsLoaded) {
-                        return _buildFriendsList(context, state.friends);
-                      }
-
-                      if (state is FriendshipError) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline,
-                                  size: 60, color: Colors.red),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Error: ${state.message}',
-                                style: const TextStyle(color: Colors.white),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () => context
-                                    .read<FriendshipBloc>()
-                                    .add(FriendshipLoadFriends()),
-                                child: const Text('Reintentar'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return const Center(
-                        child: Text(
-                          'Cargando amigos...',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      );
-                    },
-                  ),
-
-                  // Pestaña de solicitudes
-                  BlocBuilder<FriendshipBloc, FriendshipState>(
-                    builder: (context, state) {
-                      if (state is FriendshipLoading) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF8B5CF6),
-                          ),
-                        );
-                      }
-
-                      if (state is FriendshipRequestsLoaded) {
-                        return _buildRequestsList(context, state.requests);
-                      }
-
-                      if (state is FriendshipError) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.error_outline,
-                                  size: 60, color: Colors.red),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Error: ${state.message}',
-                                style: const TextStyle(color: Colors.white),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () => context
-                                    .read<FriendshipBloc>()
-                                    .add(FriendshipLoadRequests()),
-                                child: const Text('Reintentar'),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return const Center(
-                        child: Text(
-                          'Cargando solicitudes...',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
+      appBar: AppBar(
+        title: const Text('Amigos', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1A1A2E),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF8B5CF6),
+          tabs: const [
+            Tab(text: 'Mis Amigos'),
+            Tab(text: 'Solicitudes'),
           ],
+          onTap: (index) {
+            if (index == 0) {
+              context.read<FriendshipBloc>().add(FriendshipLoadFriends());
+            } else {
+              context.read<FriendshipBloc>().add(FriendshipLoadRequests());
+            }
+          },
         ),
+      ),
+      body: Column(
+        children: [
+          // Barra de búsqueda
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Buscar usuarios...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: const Color(0xFF1A1A2E),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.grey),
+                  onPressed: () {
+                    _searchController.clear();
+                  },
+                ),
+              ),
+              onSubmitted: (value) {
+                if (value.length >= 3) {
+                  context
+                      .read<FriendshipBloc>()
+                      .add(FriendshipSearchUsers(query: value));
+                }
+              },
+            ),
+          ),
+
+          // Contenido principal
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Pestaña de amigos
+                BlocBuilder<FriendshipBloc, FriendshipState>(
+                  builder: (context, state) {
+                    if (state is FriendshipLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      );
+                    }
+
+                    if (state is FriendshipSearching ||
+                        state is FriendshipSearchResults) {
+                      return _buildSearchResults(context, state);
+                    }
+
+                    if (state is FriendshipFriendsLoaded) {
+                      return _buildFriendsList(context, state.friends);
+                    }
+
+                    if (state is FriendshipError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                size: 60, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error: ${state.message}',
+                              style: const TextStyle(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => context
+                                  .read<FriendshipBloc>()
+                                  .add(FriendshipLoadFriends()),
+                              child: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return const Center(
+                      child: Text(
+                        'Cargando amigos...',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  },
+                ),
+
+                // Pestaña de solicitudes
+                BlocBuilder<FriendshipBloc, FriendshipState>(
+                  builder: (context, state) {
+                    if (state is FriendshipLoading) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      );
+                    }
+
+                    if (state is FriendshipRequestsLoaded) {
+                      return _buildRequestsList(context, state.requests);
+                    }
+
+                    if (state is FriendshipError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline,
+                                size: 60, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Error: ${state.message}',
+                              style: const TextStyle(color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => context
+                                  .read<FriendshipBloc>()
+                                  .add(FriendshipLoadRequests()),
+                              child: const Text('Reintentar'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return const Center(
+                      child: Text(
+                        'Cargando solicitudes...',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -584,8 +579,6 @@ class _FriendsScreenState extends State<FriendsScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              // Aquí deberías pasar el ID de la relación de amistad
-              // En este ejemplo, usamos el ID del usuario como placeholder
               context.read<FriendshipBloc>().add(
                     FriendshipRemoveFriend(friendshipId: friend.id!),
                   );

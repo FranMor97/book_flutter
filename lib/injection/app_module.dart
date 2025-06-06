@@ -53,7 +53,8 @@ abstract class AppModule {
   @Named("apiBaseUrl")
   @prod
   String get apiBaseUrl => 'http://192.168.1.14:3000/api';
-
+  //192.168.213.173
+  //192.168.1.14
   /// URL base para desarrollo
   @Named("apiBaseUrl")
   @dev
@@ -62,7 +63,7 @@ abstract class AppModule {
   /// URL base para pruebas
   @Named("apiBaseUrl")
   @test
-  String get testApiBaseUrl => 'http://localhost:3000/api';
+  String get testApiBaseUrl => 'http://192.168.213.173:3000/api';
 
   // @LazySingleton(as: IAuthRepository)
   // IAuthRepository authRepository(SharedPreferences sharedPreferences) {

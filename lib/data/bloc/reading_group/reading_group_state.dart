@@ -19,6 +19,21 @@ class ReadingGroupActionInProgress extends ReadingGroupState {}
 
 class ReadingGroupMessagesLoading extends ReadingGroupState {}
 
+class ReadingGroupMessagesLoadingMore extends ReadingGroupState {
+  final String groupId;
+  final List<GroupMessage> messages;
+  final int page;
+
+  const ReadingGroupMessagesLoadingMore({
+    required this.groupId,
+    required this.messages,
+    required this.page,
+  });
+
+  @override
+  List<Object?> get props => [groupId, messages, page];
+}
+
 class ReadingGroupUserGroupsLoaded extends ReadingGroupState {
   final List<ReadingGroup> groups;
 
@@ -28,7 +43,6 @@ class ReadingGroupUserGroupsLoaded extends ReadingGroupState {
   List<Object?> get props => [groups];
 }
 
-// lib/data/bloc/reading_group/reading_group_state.dart (continuación)
 class ReadingGroupLoaded extends ReadingGroupState {
   final ReadingGroup group;
 
@@ -59,14 +73,18 @@ class ReadingGroupUpdated extends ReadingGroupState {
 class ReadingGroupPublicSearchResults extends ReadingGroupState {
   final List<ReadingGroup> groups;
   final String? query;
+  final int page;
+  final bool hasMorePages;
 
   const ReadingGroupPublicSearchResults({
     required this.groups,
     this.query,
+    this.page = 1,
+    this.hasMorePages = false,
   });
 
   @override
-  List<Object?> get props => [groups, query];
+  List<Object?> get props => [groups, query, page, hasMorePages];
 }
 
 class ReadingGroupJoined extends ReadingGroupState {
@@ -115,22 +133,34 @@ class ReadingGroupMessagesLoaded extends ReadingGroupState {
   final List<GroupMessage> messages;
   final int page;
   final bool isFirstLoad;
+  final bool hasMoreMessages;
 
   const ReadingGroupMessagesLoaded({
     required this.groupId,
     required this.messages,
     required this.page,
     this.isFirstLoad = true,
+    this.hasMoreMessages = false,
   });
 
   @override
-  List<Object?> get props => [groupId, messages, page, isFirstLoad];
+  List<Object?> get props =>
+      [groupId, messages, page, isFirstLoad, hasMoreMessages];
 }
 
 class ReadingGroupMessageSent extends ReadingGroupState {
   final GroupMessage message;
 
   const ReadingGroupMessageSent({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class ReadingGroupOperationSuccess extends ReadingGroupState {
+  final String message;
+
+  const ReadingGroupOperationSuccess({required this.message});
 
   @override
   List<Object?> get props => [message];
