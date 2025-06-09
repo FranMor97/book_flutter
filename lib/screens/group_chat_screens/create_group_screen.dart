@@ -4,10 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/bloc/book_library/book_library_bloc.dart';
 import '../../data/bloc/reading_group/reading_group_bloc.dart';
-import '../../data/repositories/reading_group_repository.dart';
-import '../../injection.dart';
 import '../../models/reading_group.dart';
 import '../../models/dtos/book_dto.dart';
 
@@ -33,8 +30,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   @override
   void initState() {
     super.initState();
-    // Cargar libros populares para la selección
-    context.read<BookLibraryBloc>().add(BookLibraryLoadPopular());
+
+    context.read<ReadingGroupBloc>().add(ReadingGroupLoadPopular());
   }
 
   @override
@@ -106,285 +103,279 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ReadingGroupBloc(
-        readingGroupRepository: getIt<IReadingGroupRepository>(),
-      ),
-      child: BlocListener<ReadingGroupBloc, ReadingGroupState>(
-        listener: (context, state) {
-          if (state is ReadingGroupCreated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Grupo creado con éxito'),
-                backgroundColor: Colors.green,
-              ),
-            );
+    return BlocListener<ReadingGroupBloc, ReadingGroupState>(
+      listener: (context, state) {
+        if (state is ReadingGroupCreated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Grupo creado con éxito'),
+              backgroundColor: Colors.green,
+            ),
+          );
 
-            // Navegar de vuelta a la lista de grupos
-            Navigator.pop(context);
-          } else if (state is ReadingGroupError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-        child: Scaffold(
-          backgroundColor: const Color(0xFF0A0A0F),
-          appBar: AppBar(
-            title: const Text('Crear Grupo de Lectura',
-                style: TextStyle(color: Colors.white)),
-            backgroundColor: const Color(0xFF1A1A2E),
-            iconTheme: const IconThemeData(color: Colors.white),
-            actions: [
-              BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-                builder: (context, state) {
-                  if (state is ReadingGroupActionInProgress) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+          // Navegar de vuelta a la lista de grupos
+          Navigator.pop(context);
+        } else if (state is ReadingGroupError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${state.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0A0A0F),
+        appBar: AppBar(
+          title: const Text('Crear Grupo de Lectura',
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF1A1A2E),
+          iconTheme: const IconThemeData(color: Colors.white),
+          actions: [
+            BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
+              builder: (context, state) {
+                if (state is ReadingGroupActionInProgress) {
+                  return const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  );
+                }
+                return IconButton(
+                  icon: const Icon(Icons.check),
+                  onPressed: _submitForm,
+                );
+              },
+            ),
+          ],
+        ),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nombre del grupo
+                TextFormField(
+                  controller: _nameController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre del grupo',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    hintText: 'Ej. Club de lectura fantástica',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    prefixIcon: Icon(Icons.group, color: Colors.grey),
+                    filled: true,
+                    fillColor: Color(0xFF1A1A2E),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa un nombre para el grupo';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Descripción
+                TextFormField(
+                  controller: _descriptionController,
+                  style: const TextStyle(color: Colors.white),
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Descripción (opcional)',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    hintText: 'Describe el propósito del grupo',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    prefixIcon: Icon(Icons.description, color: Colors.grey),
+                    filled: true,
+                    fillColor: Color(0xFF1A1A2E),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Selección de libro
+                Text(
+                  'Libro del grupo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _buildBookSelector(context),
+                const SizedBox(height: 24),
+
+                // Tipo de grupo
+                Row(
+                  children: [
+                    Text(
+                      'Configuración del grupo',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: const Text('Grupo privado',
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: const Text(
+                    'Solo pueden unirse miembros invitados',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  value: _isPrivate,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPrivate = value;
+                    });
+                  },
+                  activeColor: const Color(0xFF8B5CF6),
+                  tileColor: const Color(0xFF1A1A2E),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Objetivos de lectura
+                Text(
+                  'Objetivos de lectura (opcional)',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+
+                // Fecha objetivo
+                InkWell(
+                  onTap: () => _selectDate(context),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Fecha objetivo',
+                      labelStyle: TextStyle(color: Colors.grey),
+                      prefixIcon:
+                          Icon(Icons.calendar_today, color: Colors.grey),
+                      filled: true,
+                      fillColor: Color(0xFF1A1A2E),
+                      border: OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                      ),
+                    ),
+                    child: _targetDate == null
+                        ? const Text(
+                            'Seleccionar fecha objetivo',
+                            style: TextStyle(color: Colors.grey),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _dateFormat.format(_targetDate!),
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.clear,
+                                    color: Colors.grey, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _targetDate = null;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Páginas por día
+                TextFormField(
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Páginas por día',
+                    labelStyle: TextStyle(color: Colors.grey),
+                    hintText: 'Ej. 20',
+                    hintStyle: TextStyle(color: Colors.grey),
+                    prefixIcon: Icon(Icons.menu_book, color: Colors.grey),
+                    filled: true,
+                    fillColor: Color(0xFF1A1A2E),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      _pagesPerDay = int.tryParse(value);
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Botón de creación
+                BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
+                  builder: (context, state) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: state is ReadingGroupActionInProgress
+                            ? null
+                            : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8B5CF6),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          disabledBackgroundColor: Colors.grey,
                         ),
+                        child: state is ReadingGroupActionInProgress
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('CREAR GRUPO'),
                       ),
                     );
-                  }
-                  return IconButton(
-                    icon: const Icon(Icons.check),
-                    onPressed: _submitForm,
-                  );
-                },
-              ),
-            ],
-          ),
-          body: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Nombre del grupo
-                  TextFormField(
-                    controller: _nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del grupo',
-                      labelStyle: TextStyle(color: Colors.grey),
-                      hintText: 'Ej. Club de lectura fantástica',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      prefixIcon: Icon(Icons.group, color: Colors.grey),
-                      filled: true,
-                      fillColor: Color(0xFF1A1A2E),
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor ingresa un nombre para el grupo';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Descripción
-                  TextFormField(
-                    controller: _descriptionController,
-                    style: const TextStyle(color: Colors.white),
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Descripción (opcional)',
-                      labelStyle: TextStyle(color: Colors.grey),
-                      hintText: 'Describe el propósito del grupo',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      prefixIcon: Icon(Icons.description, color: Colors.grey),
-                      filled: true,
-                      fillColor: Color(0xFF1A1A2E),
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Selección de libro
-                  Text(
-                    'Libro del grupo',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildBookSelector(context),
-                  const SizedBox(height: 24),
-
-                  // Tipo de grupo
-                  Row(
-                    children: [
-                      Text(
-                        'Configuración del grupo',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    title: const Text('Grupo privado',
-                        style: TextStyle(color: Colors.white)),
-                    subtitle: const Text(
-                      'Solo pueden unirse miembros invitados',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
-                    ),
-                    value: _isPrivate,
-                    onChanged: (value) {
-                      setState(() {
-                        _isPrivate = value;
-                      });
-                    },
-                    activeColor: const Color(0xFF8B5CF6),
-                    tileColor: const Color(0xFF1A1A2E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: const BorderSide(color: Colors.grey),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Objetivos de lectura
-                  Text(
-                    'Objetivos de lectura (opcional)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Fecha objetivo
-                  InkWell(
-                    onTap: () => _selectDate(context),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Fecha objetivo',
-                        labelStyle: TextStyle(color: Colors.grey),
-                        prefixIcon:
-                            Icon(Icons.calendar_today, color: Colors.grey),
-                        filled: true,
-                        fillColor: Color(0xFF1A1A2E),
-                        border: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                        ),
-                      ),
-                      child: _targetDate == null
-                          ? const Text(
-                              'Seleccionar fecha objetivo',
-                              style: TextStyle(color: Colors.grey),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _dateFormat.format(_targetDate!),
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.clear,
-                                      color: Colors.grey, size: 18),
-                                  onPressed: () {
-                                    setState(() {
-                                      _targetDate = null;
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Páginas por día
-                  TextFormField(
-                    keyboardType: TextInputType.number,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Páginas por día',
-                      labelStyle: TextStyle(color: Colors.grey),
-                      hintText: 'Ej. 20',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      prefixIcon: Icon(Icons.menu_book, color: Colors.grey),
-                      filled: true,
-                      fillColor: Color(0xFF1A1A2E),
-                      border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        _pagesPerDay = int.tryParse(value);
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Botón de creación
-                  BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-                    builder: (context, state) {
-                      return SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: state is ReadingGroupActionInProgress
-                              ? null
-                              : _submitForm,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B5CF6),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            disabledBackgroundColor: Colors.grey,
-                          ),
-                          child: state is ReadingGroupActionInProgress
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('CREAR GRUPO'),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -393,27 +384,27 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   }
 
   Widget _buildBookSelector(BuildContext context) {
-    return BlocBuilder<BookLibraryBloc, BookLibraryState>(
+    return BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
       builder: (context, state) {
-        if (state is BookLibraryLoading) {
+        if (state is ReadingGroupLoading) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
           );
         }
 
-        if (state is BookLibraryError) {
+        if (state is ReadingGroupError) {
           return Center(
             child: Column(
               children: [
-                const Text(
-                  'Error al cargar libros',
-                  style: TextStyle(color: Colors.white),
+                Text(
+                  'Error al cargar libros: ${state.message}',
+                  style: const TextStyle(color: Colors.white),
                 ),
                 TextButton(
                   onPressed: () {
                     context
-                        .read<BookLibraryBloc>()
-                        .add(BookLibraryLoadPopular());
+                        .read<ReadingGroupBloc>()
+                        .add(ReadingGroupLoadPopular());
                   },
                   child: const Text('Reintentar'),
                 ),
@@ -422,7 +413,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           );
         }
 
-        if (state is BookLibraryLoaded) {
+        if (state is ReadingLibraryLoaded) {
           // Si ya hay un libro seleccionado, mostrarlo
           if (_selectedBook != null) {
             return Card(

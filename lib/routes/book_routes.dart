@@ -10,8 +10,9 @@ import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/book_comments_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
-import 'package:book_app_f/screens/group_chat_screens/reading_groups.dart';
+import 'package:book_app_f/screens/group_chat_screens/reading_groups_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
@@ -56,8 +57,9 @@ class AppRouter {
   static const String readingGroups = 'reading-groups';
   static const String searchGroups = 'search-groups';
   static const String groupChat = 'group-chat';
-  static const String friendScreen =
-      'friend-screen'; // Pantalla de amigos (opcional)
+  static const String friendScreen = 'friend-screen';
+  static const String createGroupScreen =
+      'create-group'; // Pantalla de amigos (opcional)
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -73,8 +75,9 @@ class AppRouter {
   static const String readingGroupsPath = '/reading-groups';
   static const String searchGroupsPath = '/search-groups';
   static const String groupChatPath = '/group-chat/:id';
-  static const String friendScreenPath =
-      '/friend-screen'; // Pantalla de amigos (opcional)
+  static const String friendScreenPath = '/friend-screen';
+  static const String createGroupScreenPath =
+      '/create-group'; // Pantalla de amigos (opcional)
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -182,6 +185,7 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
+            bookRepository: getIt<IBookRepository>(),
           )..add(ReadingGroupLoadUserGroups()),
           child: const ReadingGroupsScreen(),
         ),
@@ -204,6 +208,7 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
+            bookRepository: getIt<IBookRepository>(),
           ),
           child: const SearchGroupsScreen(),
         ),
@@ -218,6 +223,7 @@ class AppRouter {
           return BlocProvider(
             create: (context) => ReadingGroupBloc(
               readingGroupRepository: getIt<IReadingGroupRepository>(),
+              bookRepository: getIt<IBookRepository>(),
             )..add(ReadingGroupLoadById(groupId: groupId)),
             child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
               builder: (context, state) {
@@ -236,6 +242,17 @@ class AppRouter {
             ),
           );
         },
+      ),
+      GoRoute(
+        name: createGroupScreen,
+        path: createGroupScreenPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => ReadingGroupBloc(
+            readingGroupRepository: getIt<IReadingGroupRepository>(),
+            bookRepository: getIt<IBookRepository>(),
+          ),
+          child: const CreateGroupScreen(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

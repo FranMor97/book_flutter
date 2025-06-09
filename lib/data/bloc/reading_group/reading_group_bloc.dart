@@ -1,19 +1,26 @@
 // lib/data/bloc/reading_group/reading_group_bloc.dart
 import 'package:bloc/bloc.dart';
+import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/models/comments_group.dart';
+import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
+
+import '../../../models/book.dart';
 
 part 'reading_group_event.dart';
 part 'reading_group_state.dart';
 
 class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
   final IReadingGroupRepository readingGroupRepository;
+  final IBookRepository bookRepository;
 
-  ReadingGroupBloc({required this.readingGroupRepository})
-      : super(ReadingGroupInitial()) {
+  ReadingGroupBloc({
+    required this.readingGroupRepository,
+    required this.bookRepository,
+  }) : super(ReadingGroupInitial()) {
     on<ReadingGroupLoadUserGroups>(_onLoadUserGroups);
     on<ReadingGroupLoadById>(_onLoadById);
     on<ReadingGroupCreate>(_onCreate);
@@ -25,6 +32,24 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     on<ReadingGroupUpdateProgress>(_onUpdateProgress);
     on<ReadingGroupLoadMessages>(_onLoadMessages);
     on<ReadingGroupSendMessage>(_onSendMessage);
+    on<ReadingGroupLoadPopular>(_onLoadPopular);
+  }
+
+  Future<void> _onLoadPopular(
+    ReadingGroupLoadPopular event,
+    Emitter<ReadingGroupState> emit,
+  ) async {
+    emit(ReadingGroupLoading());
+
+    try {
+      final response = await bookRepository.getPopularBooks(page: 1, limit: 20);
+
+      emit(ReadingLibraryLoaded(
+        books: response.books,
+      ));
+    } catch (e) {
+      emit(ReadingGroupError(message: e.toString()));
+    }
   }
 
   Future<void> _onLoadUserGroups(

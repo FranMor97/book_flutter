@@ -9,6 +9,15 @@ abstract class ReadingGroupState extends Equatable {
   List<Object?> get props => [];
 }
 
+class ReadingLibraryLoaded extends ReadingGroupState {
+  final List<BookDto> books;
+
+  const ReadingLibraryLoaded({required this.books});
+
+  @override
+  List<Object?> get props => [books];
+}
+
 class ReadingGroupInitial extends ReadingGroupState {}
 
 class ReadingGroupLoading extends ReadingGroupState {}

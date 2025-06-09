@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:injectable/injectable.dart';
+import 'package:provider/provider.dart'; // Para ChangeNotifierProvider
 import 'injection.dart'; // Solo importa el archivo de inyección
 
 Future<void> main() async {
@@ -16,7 +18,14 @@ Future<void> main() async {
   }
   await configureDependencies(env: Environment.prod);
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SocketService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

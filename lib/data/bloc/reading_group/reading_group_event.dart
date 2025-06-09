@@ -148,3 +148,5 @@ class ReadingGroupSendMessage extends ReadingGroupEvent {
   @override
   List<Object?> get props => [groupId, text];
 }
+
+class ReadingGroupLoadPopular extends ReadingGroupEvent {}

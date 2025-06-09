@@ -1,6 +1,7 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
 import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
+import 'package:book_app_f/routes/book_routes.dart';
 import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
@@ -10,6 +11,9 @@ import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../data/repositories/book_repository.dart';
 
 class ReadingGroupsScreen extends StatelessWidget {
   const ReadingGroupsScreen({super.key});
@@ -19,6 +23,7 @@ class ReadingGroupsScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
+        bookRepository: getIt<IBookRepository>(),
       )..add(ReadingGroupLoadUserGroups()),
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0F),
@@ -30,12 +35,7 @@ class ReadingGroupsScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.search, color: Colors.white),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SearchGroupsScreen(),
-                  ),
-                );
+                context.goNamed(AppRouter.searchGroups);
               },
             ),
           ],
@@ -88,14 +88,7 @@ class ReadingGroupsScreen extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           backgroundColor: const Color(0xFF8B5CF6),
           child: const Icon(Icons.add),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CreateGroupScreen(),
-              ),
-            );
-          },
+          onPressed: () {},
         ),
       ),
     );
@@ -130,12 +123,7 @@ class ReadingGroupsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreateGroupScreen(),
-                  ),
-                );
+                context.goNamed(AppRouter.createGroupScreen);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6),
@@ -148,12 +136,7 @@ class ReadingGroupsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SearchGroupsScreen(),
-                  ),
-                );
+                context.goNamed(AppRouter.createGroupScreen);
               },
               icon: const Icon(Icons.search, color: Color(0xFF8B5CF6)),
               label: const Text(
@@ -182,12 +165,7 @@ class ReadingGroupsScreen extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GroupChatScreen(group: group),
-                ),
-              );
+              context.goNamed(AppRouter.groupChat);
             },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,13 +323,7 @@ class ReadingGroupsScreen extends StatelessWidget {
                       // Botón de chat
                       ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  GroupChatScreen(group: group),
-                            ),
-                          );
+                          context.goNamed(AppRouter.groupChat);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF8B5CF6),

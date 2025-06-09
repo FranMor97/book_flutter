@@ -1,6 +1,7 @@
 // lib/screens/home/views/home_screen.dart
 import 'package:book_app_f/data/bloc/friendship/friendship_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
+import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/data/repositories/book_user_repository.dart';
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
@@ -12,6 +13,8 @@ import 'package:go_router/go_router.dart';
 import '../../../data/bloc/home/home_bloc.dart';
 import '../../../models/dtos/book_user_dto.dart';
 import '../../../models/dtos/book_dto.dart';
+import 'package:book_app_f/data/services/socket_service.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,6 +28,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeLoadDashboard());
+    _initializeSocket();
+  }
+
+  Future<void> _initializeSocket() async {
+    try {
+      final socketUrl = getIt<String>(instanceName: 'socketUrl');
+      final socketService = context.read<SocketService>();
+      await socketService.initSocket(socketUrl);
+    } catch (e) {
+      print('Error al inicializar socket: $e');
+    }
   }
 
   @override
@@ -447,6 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
+        bookRepository: getIt<IBookRepository>(),
       )..add(ReadingGroupLoadUserGroups()),
       child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
         builder: (context, state) {
