@@ -942,15 +942,13 @@ class _HomeScreenState extends State<HomeScreen> {
           if (recentlyFinished.isNotEmpty)
             ...recentlyFinished.take(3).map((bookUser) {
               // Extraer datos del libro si están disponibles
-              final bookData = bookUser.bookId is Map
-                  ? BookDto.fromJson(bookUser.bookId as Map<String, dynamic>)
-                  : null;
+              final bookData = bookUser.bookId;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: GestureDetector(
                   onTap: () {
-                    if (bookData != null && bookData.id != null) {
+                    if (bookData.id != null) {
                       context.pushNamed(
                         'book-detail',
                         pathParameters: {'id': bookData.id!},
@@ -983,7 +981,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              bookData?.title ?? 'Libro sin título',
+                              bookData.title ?? 'Libro sin título',
                               style: const TextStyle(color: Colors.white),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

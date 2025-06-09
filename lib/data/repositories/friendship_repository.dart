@@ -2,13 +2,14 @@
 import 'package:book_app_f/models/dtos/friendship_dto.dart';
 import 'package:book_app_f/models/friendship.dart';
 import 'package:book_app_f/models/user.dart';
+import 'package:book_app_f/models/user_with_friendship.dart';
 
 abstract class IFriendshipRepository {
   /// Obtiene la lista de amigos del usuario actual
   Future<List<User>> getFriends();
 
   /// Obtiene las solicitudes de amistad pendientes recibidas
-  Future<List<Friendship>> getFriendRequests();
+  Future<List<UserWithFriendshipId>> getFriendRequests();
 
   /// Busca usuarios por nombre o email
   /// Retorna usuarios con su estado de amistad

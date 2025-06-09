@@ -1,6 +1,7 @@
 // lib/models/dtos/friendship_dto.dart
 import 'package:json_annotation/json_annotation.dart';
 import '../friendship.dart';
+import '../user.dart';
 import 'user_dto.dart';
 
 part 'friendship_dto.g.dart';
@@ -10,10 +11,12 @@ class FriendshipDto {
   @JsonKey(name: '_id')
   final String? id;
 
-  @JsonKey(name: 'requesterId')
+  // Utilizamos un JsonKey personalizado para manejar tanto string como Map
+  @JsonKey(name: 'requesterId', fromJson: _extractIdFromField)
   final String requesterId;
 
-  @JsonKey(name: 'recipientId')
+  // Utilizamos un JsonKey personalizado para manejar tanto string como Map
+  @JsonKey(name: 'recipientId', fromJson: _extractIdFromField)
   final String recipientId;
 
   @JsonKey(name: 'status')
@@ -66,6 +69,21 @@ class FriendshipDto {
   // Helper methods for DateTime conversion
   static DateTime _dateTimeFromJson(String date) => DateTime.parse(date);
   static String _dateTimeToJson(DateTime date) => date.toIso8601String();
+
+  // Helper method to extract ID from either a string or a Map
+  static String _extractIdFromField(dynamic field) {
+    if (field == null) return '';
+
+    if (field is String) {
+      return field;
+    } else if (field is Map) {
+      // Intenta obtener '_id' o 'id'
+      return (field['_id'] ?? field['id'] ?? '').toString();
+    }
+
+    // En caso de cualquier otro tipo, convierte a string
+    return field.toString();
+  }
 
   // Convert DTO to domain Friendship
   Friendship toDomain() {

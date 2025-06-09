@@ -27,7 +27,7 @@ class FriendshipFriendsLoaded extends FriendshipState {
 }
 
 class FriendshipRequestsLoaded extends FriendshipState {
-  final List<Friendship> requests;
+  final List<UserWithFriendshipId> requests;
 
   const FriendshipRequestsLoaded({required this.requests});
 

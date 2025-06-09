@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/models/friendship.dart';
 import 'package:book_app_f/models/user.dart';
+import 'package:book_app_f/models/user_with_friendship.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 

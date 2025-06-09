@@ -1,4 +1,5 @@
 // lib/screens/user_screens/friends_screens.dart
+import 'package:book_app_f/models/user_with_friendship.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:book_app_f/data/bloc/friendship/friendship_bloc.dart';
@@ -19,20 +20,48 @@ class _FriendsScreenState extends State<FriendsScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearchActive = false;
+  bool _initialLoadComplete = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Cargar amigos al inicio
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FriendshipBloc>().add(FriendshipLoadFriends());
+      _loadInitialData();
     });
+
+    _tabController.addListener(_onTabChanged);
+  }
+
+  // Método para cargar datos iniciales
+  void _loadInitialData() {
+    if (!_initialLoadComplete) {
+      context.read<FriendshipBloc>().add(FriendshipLoadFriends());
+      context.read<FriendshipBloc>().add(FriendshipLoadRequests());
+      _initialLoadComplete = true;
+    }
+  }
+
+  // Listener para cambios de pestaña
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) {
+      setState(() {
+        _isSearchActive = false;
+        _searchController.clear();
+      });
+
+      if (_tabController.index == 0) {
+        context.read<FriendshipBloc>().add(FriendshipLoadFriends());
+      } else {
+        context.read<FriendshipBloc>().add(FriendshipLoadRequests());
+      }
+    }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -340,7 +369,8 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  Widget _buildRequestsList(BuildContext context, List<Friendship> requests) {
+  Widget _buildRequestsList(
+      BuildContext context, List<UserWithFriendshipId> requests) {
     if (requests.isEmpty) {
       return const Center(
         child: Column(
@@ -370,12 +400,7 @@ class _FriendsScreenState extends State<FriendsScreen>
       itemCount: requests.length,
       itemBuilder: (context, index) {
         final request = requests[index];
-        final requester = request.requester;
-
-        if (requester == null) {
-          return const SizedBox
-              .shrink(); // No mostrar si no hay datos de usuario
-        }
+        final user = request.user;
 
         return Card(
           color: const Color(0xFF1A1A2E),
@@ -386,14 +411,13 @@ class _FriendsScreenState extends State<FriendsScreen>
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: const Color(0xFF8B5CF6),
-              backgroundImage:
-                  requester.avatar != null && requester.avatar!.isNotEmpty
-                      ? NetworkImage(requester.avatar!)
-                      : null,
-              child: requester.avatar == null || requester.avatar!.isEmpty
+              backgroundImage: user.avatar != null && user.avatar!.isNotEmpty
+                  ? NetworkImage(user.avatar!)
+                  : null,
+              child: user.avatar == null || user.avatar!.isEmpty
                   ? Text(
-                      requester.firstName.isNotEmpty
-                          ? requester.firstName[0].toUpperCase()
+                      user.firstName.isNotEmpty
+                          ? user.firstName[0].toUpperCase()
                           : '?',
                       style: const TextStyle(
                         color: Colors.white,
@@ -403,12 +427,12 @@ class _FriendsScreenState extends State<FriendsScreen>
                   : null,
             ),
             title: Text(
-              '${requester.firstName} ${requester.lastName1}',
+              '${user.firstName} ${user.lastName1}',
               style: const TextStyle(color: Colors.white),
             ),
-            subtitle: const Text(
+            subtitle: Text(
               'Quiere ser tu amigo',
-              style: TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey),
             ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -418,7 +442,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   onPressed: () {
                     context.read<FriendshipBloc>().add(
                           FriendshipRespondToRequest(
-                            friendshipId: request.id,
+                            friendshipId: request.friendshipId,
                             status: 'accepted',
                           ),
                         );
@@ -429,7 +453,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   onPressed: () {
                     context.read<FriendshipBloc>().add(
                           FriendshipRespondToRequest(
-                            friendshipId: request.id,
+                            friendshipId: request.friendshipId,
                             status: 'rejected',
                           ),
                         );
@@ -437,6 +461,9 @@ class _FriendsScreenState extends State<FriendsScreen>
                 ),
               ],
             ),
+            onTap: () {
+              _showUserProfileBottomSheet(context, user);
+            },
           ),
         );
       },

@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 
 import '../../data/bloc/book_library/book_library_bloc.dart';
 import '../../data/bloc/reading_group/reading_group_bloc.dart';
-import '../../data/repositories/book_repository.dart';
 import '../../data/repositories/reading_group_repository.dart';
 import '../../injection.dart';
 import '../../models/reading_group.dart';

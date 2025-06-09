@@ -3,6 +3,7 @@ import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/models/dtos/friendship_dto.dart';
 import 'package:book_app_f/models/friendship.dart';
 import 'package:book_app_f/models/user.dart';
+import 'package:book_app_f/models/user_with_friendship.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
@@ -44,7 +45,7 @@ class DioFriendshipRepository implements IFriendshipRepository {
   }
 
   @override
-  Future<List<Friendship>> getFriendRequests() async {
+  Future<List<UserWithFriendshipId>> getFriendRequests() async {
     try {
       final response =
           await _dio.get('$_baseUrl$_friendshipsEndpoint/requests');
@@ -55,18 +56,9 @@ class DioFriendshipRepository implements IFriendshipRepository {
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> requestsData = responseData['data'];
 
-          // Convertir a FriendshipDto y luego a Friendship
           return requestsData.map((item) {
             final itemMap = _ensureMapResponse(item);
-
-            // Si hay campo requesterId y es un objeto, normalizarlo
-            if (itemMap.containsKey('requesterId') &&
-                itemMap['requesterId'] is Map) {
-              final requesterMap = _ensureMapResponse(itemMap['requesterId']);
-              itemMap['requester'] = requesterMap;
-            }
-
-            return FriendshipDto.fromJson(itemMap).toDomain();
+            return UserWithFriendshipId.fromJson(itemMap);
           }).toList();
         }
       }
@@ -78,6 +70,140 @@ class DioFriendshipRepository implements IFriendshipRepository {
       throw Exception(
           'Error al obtener solicitudes de amistad: ${e.toString()}');
     }
+  }
+  // @override
+  // Future<List<Friendship>> getFriendRequests() async {
+  //   try {
+  //     final response =
+  //         await _dio.get('$_baseUrl$_friendshipsEndpoint/requests');
+  //
+  //     if (response.statusCode == 200 && response.data != null) {
+  //       final responseData = _ensureMapResponse(response.data);
+  //
+  //       if (responseData.containsKey('data') && responseData['data'] is List) {
+  //         final List<dynamic> requestsData = responseData['data'];
+  //
+  //         // Convertir a FriendshipDto y luego a Friendship
+  //         final requests = requestsData.map((item) {
+  //           final itemMap = _ensureMapResponse(item);
+  //
+  //           // Manejo especial para campos anidados
+  //           try {
+  //             return FriendshipDto.fromJson(itemMap).toDomain();
+  //           } catch (e) {
+  //             print('Error al convertir friendshipDto: $e');
+  //             print('Item problemático: $itemMap');
+  //
+  //             // Intenta una conversión manual con manejo de errores
+  //             return _convertToFriendship(itemMap);
+  //           }
+  //         }).toList();
+  //
+  //         return requests.where((f) => f != null).cast<Friendship>().toList();
+  //       }
+  //     }
+  //
+  //     return [];
+  //   } on DioException catch (e) {
+  //     throw _handleDioException(e);
+  //   } catch (e) {
+  //     throw Exception(
+  //         'Error al obtener solicitudes de amistad: ${e.toString()}');
+  //   }
+  // }
+
+  // Método auxiliar para convertir manualmente un map a Friendship
+  Friendship? _convertToFriendship(Map<String, dynamic> data) {
+    try {
+      // Extraer IDs de manera segura
+      String requesterId = '';
+      if (data['requesterId'] is String) {
+        requesterId = data['requesterId'];
+      } else if (data['requesterId'] is Map) {
+        final requesterMap =
+            Map<String, dynamic>.from(data['requesterId'] as Map);
+        requesterId = requesterMap['_id']?.toString() ??
+            requesterMap['id']?.toString() ??
+            '';
+      }
+
+      String recipientId = '';
+      if (data['recipientId'] is String) {
+        recipientId = data['recipientId'];
+      } else if (data['recipientId'] is Map) {
+        final recipientMap =
+            Map<String, dynamic>.from(data['recipientId'] as Map);
+        recipientId = recipientMap['_id']?.toString() ??
+            recipientMap['id']?.toString() ??
+            '';
+      }
+
+      // Extraer requester/recipient como User si están disponibles
+      User? requester;
+      if (data['requester'] is Map) {
+        try {
+          requester = User.fromJson(_normalizeUserData(data['requester']));
+        } catch (e) {
+          print('Error al convertir requester: $e');
+        }
+      }
+
+      User? recipient;
+      if (data['recipient'] is Map) {
+        try {
+          recipient = User.fromJson(_normalizeUserData(data['recipient']));
+        } catch (e) {
+          print('Error al convertir recipient: $e');
+        }
+      }
+
+      // Crear Friendship con los datos disponibles
+      return Friendship(
+        id: data['_id']?.toString() ?? data['id']?.toString() ?? '',
+        requesterId: requesterId,
+        recipientId: recipientId,
+        status:
+            _stringToFriendshipStatus(data['status']?.toString() ?? 'pending'),
+        createdAt: _parseDateTime(data['createdAt']) ?? DateTime.now(),
+        updatedAt: _parseDateTime(data['updatedAt']) ?? DateTime.now(),
+        requester: requester,
+        recipient: recipient,
+      );
+    } catch (e) {
+      print('Error en conversión manual de Friendship: $e');
+      return null;
+    }
+  }
+
+  // Convierte string a FriendshipStatus
+  FriendshipStatus _stringToFriendshipStatus(String status) {
+    switch (status) {
+      case 'pending':
+        return FriendshipStatus.pending;
+      case 'accepted':
+        return FriendshipStatus.accepted;
+      case 'rejected':
+        return FriendshipStatus.rejected;
+      case 'blocked':
+        return FriendshipStatus.blocked;
+      default:
+        return FriendshipStatus.pending;
+    }
+  }
+
+  // Parsea DateTime de manera segura
+  DateTime? _parseDateTime(dynamic dateValue) {
+    if (dateValue == null) return null;
+
+    if (dateValue is String) {
+      try {
+        return DateTime.parse(dateValue);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -173,33 +299,54 @@ class DioFriendshipRepository implements IFriendshipRepository {
 
   // Método para asegurar que las respuestas sean Map<String, dynamic>
   Map<String, dynamic> _ensureMapResponse(dynamic data) {
-    if (data is Map<String, dynamic>) {
-      return data;
-    } else if (data is Map) {
-      return Map<String, dynamic>.from(data);
-    } else {
-      throw Exception('Formato de respuesta inesperado: $data');
+    try {
+      if (data is Map<String, dynamic>) {
+        return data;
+      } else if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      } else {
+        print(
+            'Error: Formato de respuesta inesperado. Tipo: ${data.runtimeType}');
+        print('Contenido: $data');
+        throw Exception('Formato de respuesta inesperado: $data');
+      }
+    } catch (e) {
+      print('Error al convertir respuesta a Map: $e');
+      return {}; // Devolver un mapa vacío en caso de error
     }
   }
 
   // Método para normalizar los datos de usuario
   Map<String, dynamic> _normalizeUserData(dynamic userData) {
-    final Map<String, dynamic> normalizedUser = _ensureMapResponse(userData);
+    try {
+      final Map<String, dynamic> normalizedUser = _ensureMapResponse(userData);
 
-    // Convertir _id a id si existe
-    if (normalizedUser.containsKey('_id') &&
-        !normalizedUser.containsKey('id')) {
-      normalizedUser['id'] = normalizedUser['_id'];
+      // Convertir _id a id si existe
+      if (normalizedUser.containsKey('_id') &&
+          !normalizedUser.containsKey('id')) {
+        normalizedUser['id'] = normalizedUser['_id'];
+      }
+
+      // Asegurar campos requeridos con valores por defecto
+      normalizedUser['firstName'] = normalizedUser['firstName'] ?? '';
+      normalizedUser['lastName1'] = normalizedUser['lastName1'] ?? '';
+      normalizedUser['lastName2'] = normalizedUser['lastName2'] ?? '';
+      normalizedUser['email'] = normalizedUser['email'] ?? '';
+      normalizedUser['avatar'] = normalizedUser['avatar'] ?? '';
+
+      return normalizedUser;
+    } catch (e) {
+      print('Error al normalizar usuario: $e');
+      // Devolver un usuario mínimo válido en caso de error
+      return {
+        'id': '',
+        'firstName': 'Usuario',
+        'lastName1': 'Desconocido',
+        'lastName2': '',
+        'email': '',
+        'avatar': '',
+      };
     }
-
-    // Asegurar campos requeridos con valores por defecto
-    normalizedUser['firstName'] = normalizedUser['firstName'] ?? '';
-    normalizedUser['lastName1'] = normalizedUser['lastName1'] ?? '';
-    normalizedUser['lastName2'] = normalizedUser['lastName2'] ?? '';
-    normalizedUser['email'] = normalizedUser['email'] ?? '';
-    normalizedUser['avatar'] = normalizedUser['avatar'] ?? '';
-
-    return normalizedUser;
   }
 
   Exception _handleDioException(DioException e) {
@@ -218,6 +365,9 @@ class DioFriendshipRepository implements IFriendshipRepository {
     } catch (_) {
       errorMessage = e.message ?? 'Error desconocido';
     }
+
+    print(
+        'Error en petición HTTP (${e.requestOptions.method} ${e.requestOptions.path}): [$statusCode] $errorMessage');
 
     switch (statusCode) {
       case 400:
