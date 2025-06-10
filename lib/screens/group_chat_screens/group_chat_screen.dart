@@ -1,6 +1,7 @@
 // lib/screens/group_chat_screens/group_chat_screen.dart
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/services/reading_group_socket_service.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/comments_group.dart';
@@ -27,6 +28,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   String? _currentUserId;
   bool _isLoadingMore = false;
   bool _hasMoreMessages = true;
+  late ReadingGroupSocketService _groupSocketService;
   int _currentPage = 1;
   static const int _messagesPerPage = 20;
   List<GroupMessage> _messages = [];
@@ -35,6 +37,23 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void initState() {
     super.initState();
     _readingGroupBloc = context.read<ReadingGroupBloc>();
+    final socketService = context.read<SocketService>();
+    _groupSocketService = ReadingGroupSocketService(
+      socketService: socketService,
+      onNewMessage: (message) {
+        if (mounted) {
+          setState(() {
+            _messages.insert(0, message);
+          });
+          _scrollToBottom();
+        }
+      },
+      onProgressUpdated: (data) {
+        if (mounted && data['groupId'] == widget.group.id) {
+          _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.group.id));
+        }
+      },
+    );
     _loadCurrentUser();
     _loadInitialMessages();
     _setupScrollListener();
@@ -56,29 +75,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _connectToSocket() {
-    final socketService = context.read<SocketService>();
-
-    // Unirse al grupo
-    socketService.joinGroupChat(widget.group.id);
-
-    // Escuchar nuevos mensajes
-    socketService.on('group-message:new', (data) {
-      if (mounted) {
-        final message = GroupMessage.fromJson(data);
-        setState(() {
-          _messages.insert(0, message);
-        });
-        _scrollToBottom();
-      }
-    });
-
-    // Escuchar actualizaciones de progreso
-    socketService.on('reading-progress:updated', (data) {
-      if (mounted && data['groupId'] == widget.group.id) {
-        // Actualizar el estado del grupo si es necesario
-        _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.group.id));
-      }
-    });
+    _groupSocketService.joinGroupChat(widget.group.id);
   }
 
   void _setupScrollListener() {
@@ -108,12 +105,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-
-    // Desconectar del socket
-    final socketService = context.read<SocketService>();
-    socketService.off('group-message:new');
-    socketService.off('reading-progress:updated');
-
+    _groupSocketService.dispose();
     super.dispose();
   }
 
@@ -130,9 +122,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         ),
       );
 
-      // También enviar por socket para actualización en tiempo real
-      final socketService = context.read<SocketService>();
-      socketService.sendGroupMessage(widget.group.id, text);
+      _groupSocketService.sendGroupMessage(widget.group.id, text);
     }
   }
 
@@ -221,8 +211,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 );
 
                 // También actualizar por socket
-                final socketService = context.read<SocketService>();
-                socketService.updateReadingProgress(widget.group.id, page);
+                _groupSocketService.updateReadingProgress(
+                    widget.group.id, page);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

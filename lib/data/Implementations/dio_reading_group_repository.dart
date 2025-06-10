@@ -1,11 +1,14 @@
-// lib/data/implementations/dio_reading_group_repository.dart
+import 'dart:convert';
+
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
-import 'package:book_app_f/models/comments_group.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
-@LazySingleton(as: IReadingGroupRepository) // ✅ Simplificado
+import '../../models/comments_group.dart';
+
+@LazySingleton(
+    as: IReadingGroupRepository, env: [Environment.dev, Environment.prod])
 class DioReadingGroupRepository implements IReadingGroupRepository {
   final Dio _dio;
   final String _baseUrl;
@@ -23,13 +26,11 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       final response = await _dio.get('$_baseUrl$_groupsEndpoint');
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> groupsData = responseData['data'];
-          return groupsData.map((item) => ReadingGroup.fromJson(item)).toList();
+          return groupsData.map((json) => ReadingGroup.fromJson(json)).toList();
         }
       }
 
@@ -37,7 +38,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
-      throw Exception('Error al obtener grupos: ${e.toString()}');
+      throw Exception('Error al obtener grupos de usuario: ${e.toString()}');
     }
   }
 
@@ -47,10 +48,11 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       final response = await _dio.get('$_baseUrl$_groupsEndpoint/$groupId');
 
       if (response.statusCode == 200 && response.data != null) {
-        return ReadingGroup.fromJson(response.data);
+        final responseData = _ensureMapResponse(response.data);
+        return ReadingGroup.fromJson(responseData);
       }
 
-      throw Exception('Grupo no encontrado');
+      throw Exception('Error al cargar el grupo');
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
@@ -69,12 +71,11 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     try {
       final data = {
         'name': name,
+        'description': description,
         'bookId': bookId,
         'isPrivate': isPrivate,
+        'readingGoal': readingGoal?.toJson(),
       };
-
-      if (description != null) data['description'] = description;
-      if (readingGoal != null) data['readingGoal'] = readingGoal.toJson();
 
       final response = await _dio.post(
         '$_baseUrl$_groupsEndpoint',
@@ -82,9 +83,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 201 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return ReadingGroup.fromJson(responseData['data']);
@@ -108,22 +107,19 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     ReadingGoal? readingGoal,
   }) async {
     try {
-      final data = <String, dynamic>{};
-
-      if (name != null) data['name'] = name;
-      if (description != null) data['description'] = description;
-      if (isPrivate != null) data['isPrivate'] = isPrivate;
-      if (readingGoal != null) data['readingGoal'] = readingGoal.toJson();
+      final Map<String, dynamic> updateData = {};
+      if (name != null) updateData['name'] = name;
+      if (description != null) updateData['description'] = description;
+      if (isPrivate != null) updateData['isPrivate'] = isPrivate;
+      if (readingGoal != null) updateData['readingGoal'] = readingGoal.toJson();
 
       final response = await _dio.patch(
         '$_baseUrl$_groupsEndpoint/$groupId',
-        data: data,
+        data: updateData,
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return ReadingGroup.fromJson(responseData['data']);
@@ -150,9 +146,8 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
         'limit': limit,
       };
 
-      // ✅ FIX: query es String, no int
       if (query != null && query.isNotEmpty) {
-        queryParams['q'] = query; // ✅ Correcto
+        queryParams['q'] = query;
       }
 
       final response = await _dio.get(
@@ -161,13 +156,11 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> groupsData = responseData['data'];
-          return groupsData.map((item) => ReadingGroup.fromJson(item)).toList();
+          return groupsData.map((json) => ReadingGroup.fromJson(json)).toList();
         }
       }
 
@@ -182,14 +175,11 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
   @override
   Future<ReadingGroup> joinGroup(String groupId) async {
     try {
-      final response = await _dio.post(
-        '$_baseUrl$_groupsEndpoint/$groupId/join',
-      );
+      final response =
+          await _dio.post('$_baseUrl$_groupsEndpoint/$groupId/join');
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return ReadingGroup.fromJson(responseData['data']);
@@ -211,7 +201,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     } on DioException catch (e) {
       throw _handleDioException(e);
     } catch (e) {
-      throw Exception('Error al abandonar el grupo: ${e.toString()}');
+      throw Exception('Error al abandonar grupo: ${e.toString()}');
     }
   }
 
@@ -228,9 +218,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return ReadingGroup.fromJson(responseData['data']);
@@ -257,9 +245,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return ReadingGroup.fromJson(responseData['data']);
@@ -290,14 +276,12 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data') && responseData['data'] is List) {
           final List<dynamic> messagesData = responseData['data'];
           return messagesData
-              .map((item) => GroupMessage.fromJson(item))
+              .map((json) => GroupMessage.fromJson(json))
               .toList();
         }
       }
@@ -322,9 +306,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       );
 
       if (response.statusCode == 201 && response.data != null) {
-        final responseData = response.data is Map<String, dynamic>
-            ? response.data
-            : Map<String, dynamic>.from(response.data);
+        final responseData = _ensureMapResponse(response.data);
 
         if (responseData.containsKey('data')) {
           return GroupMessage.fromJson(responseData['data']);
@@ -339,11 +321,44 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     }
   }
 
+  // Método para asegurar que las respuestas sean Map<String, dynamic>
+  Map<String, dynamic> _ensureMapResponse(dynamic data) {
+    try {
+      if (data is Map<String, dynamic>) {
+        return data;
+      } else if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      } else {
+        print(
+            'Error: Formato de respuesta inesperado. Tipo: ${data.runtimeType}');
+        print('Contenido: $data');
+        throw Exception('Formato de respuesta inesperado: $data');
+      }
+    } catch (e) {
+      print('Error al convertir respuesta a Map: $e');
+      return {}; // Devolver un mapa vacío en caso de error
+    }
+  }
+
   Exception _handleDioException(DioException e) {
     final statusCode = e.response?.statusCode;
-    final errorMessage = e.response?.data is Map
-        ? e.response?.data['error'] ?? 'Error desconocido'
-        : 'Error desconocido';
+    String errorMessage = 'Error desconocido';
+
+    try {
+      // Intentar extraer el mensaje de error de la respuesta
+      if (e.response?.data is Map) {
+        errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+      } else if (e.response?.data is String) {
+        errorMessage = e.response?.data;
+      } else {
+        errorMessage = e.message ?? 'Error desconocido';
+      }
+    } catch (_) {
+      errorMessage = e.message ?? 'Error desconocido';
+    }
+
+    print(
+        'Error en petición HTTP (${e.requestOptions.method} ${e.requestOptions.path}): [$statusCode] $errorMessage');
 
     switch (statusCode) {
       case 400:
@@ -359,7 +374,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
       case 500:
         return Exception('Error del servidor: $errorMessage');
       default:
-        return Exception('Error de conexión: ${e.message}');
+        return Exception('Error de conexión: $errorMessage');
     }
   }
 }

@@ -8,6 +8,7 @@ import 'package:book_app_f/data/bloc/user_library/user_library_bloc.dart'; // Im
 import 'package:book_app_f/data/bloc/user_profile/user_profile_bloc.dart';
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
+import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/book_comments_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
@@ -185,7 +186,7 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
-            bookRepository: getIt<IBookRepository>(),
+            socketService: getIt<SocketService>(), // Añadir SocketService
           )..add(ReadingGroupLoadUserGroups()),
           child: const ReadingGroupsScreen(),
         ),
@@ -201,20 +202,20 @@ class AppRouter {
                 child: const FriendsScreen(),
               )),
 
-// Búsqueda de grupos
+      // Búsqueda de grupos
       GoRoute(
         name: searchGroups,
         path: searchGroupsPath,
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
-            bookRepository: getIt<IBookRepository>(),
+            socketService: getIt<SocketService>(), // Añadir SocketService
           ),
           child: const SearchGroupsScreen(),
         ),
       ),
 
-// Chat de grupo (necesita el ID del grupo)
+      // Chat de grupo (necesita el ID del grupo)
       GoRoute(
         name: groupChat,
         path: groupChatPath,
@@ -223,7 +224,7 @@ class AppRouter {
           return BlocProvider(
             create: (context) => ReadingGroupBloc(
               readingGroupRepository: getIt<IReadingGroupRepository>(),
-              bookRepository: getIt<IBookRepository>(),
+              socketService: getIt<SocketService>(), // Añadir SocketService
             )..add(ReadingGroupLoadById(groupId: groupId)),
             child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
               builder: (context, state) {
@@ -249,7 +250,7 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
-            bookRepository: getIt<IBookRepository>(),
+            socketService: getIt<SocketService>(), // Añadir SocketService
           ),
           child: const CreateGroupScreen(),
         ),
@@ -279,7 +280,6 @@ class AppRouter {
       ),
     ),
     redirect: (BuildContext context, GoRouterState state) {
-      // Implementar lógica de redirección basada en autenticación
       return null;
     },
   );

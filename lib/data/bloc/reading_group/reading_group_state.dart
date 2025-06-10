@@ -1,4 +1,3 @@
-// lib/data/bloc/reading_group/reading_group_state.dart
 part of 'reading_group_bloc.dart';
 
 @immutable
@@ -7,15 +6,6 @@ abstract class ReadingGroupState extends Equatable {
 
   @override
   List<Object?> get props => [];
-}
-
-class ReadingLibraryLoaded extends ReadingGroupState {
-  final List<BookDto> books;
-
-  const ReadingLibraryLoaded({required this.books});
-
-  @override
-  List<Object?> get props => [books];
 }
 
 class ReadingGroupInitial extends ReadingGroupState {}
@@ -164,6 +154,25 @@ class ReadingGroupMessageSent extends ReadingGroupState {
 
   @override
   List<Object?> get props => [message];
+}
+
+// New states for socket events
+class ReadingGroupMessageReceived extends ReadingGroupState {
+  final GroupMessage message;
+
+  const ReadingGroupMessageReceived({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class ReadingGroupKickedFromGroup extends ReadingGroupState {
+  final String groupId;
+
+  const ReadingGroupKickedFromGroup({required this.groupId});
+
+  @override
+  List<Object?> get props => [groupId];
 }
 
 class ReadingGroupOperationSuccess extends ReadingGroupState {

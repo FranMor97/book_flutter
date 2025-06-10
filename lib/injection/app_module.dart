@@ -13,7 +13,6 @@ abstract class AppModule {
   Future<SharedPreferences> get sharedPreferences =>
       SharedPreferences.getInstance();
 
-  /// Proporciona una instancia de Dio con interceptor de autenticación
   @lazySingleton
   Dio dio(SharedPreferences prefs) {
     final dio = Dio(BaseOptions(

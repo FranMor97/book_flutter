@@ -1,10 +1,8 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/routes/book_routes.dart';
-import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
-import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
-import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
@@ -23,7 +21,7 @@ class ReadingGroupsScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
-        bookRepository: getIt<IBookRepository>(),
+        socketService: getIt<SocketService>(),
       )..add(ReadingGroupLoadUserGroups()),
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0F),

@@ -100,6 +100,16 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'apiBaseUrl',
       registerFor: {_test},
     );
+    gh.lazySingleton<_i228.IReadingGroupRepository>(
+      () => _i936.DioReadingGroupRepository(
+        dio: gh<_i361.Dio>(),
+        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+      ),
+      registerFor: {
+        _dev,
+        _prod,
+      },
+    );
     gh.factory<String>(
       () => appModule.apiBaseUrl,
       instanceName: 'apiBaseUrl',
@@ -107,11 +117,6 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i654.CacheManager>(
         () => appModule.cacheManager(gh<_i654.CacheStore>()));
-    gh.lazySingleton<_i228.IReadingGroupRepository>(
-        () => _i936.DioReadingGroupRepository(
-              dio: gh<_i361.Dio>(),
-              baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
-            ));
     gh.lazySingleton<_i443.IUserRepository>(
       () => _i654.ApiUserRepository(
         dio: gh<_i361.Dio>(),

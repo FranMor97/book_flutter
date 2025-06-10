@@ -1,13 +1,26 @@
-// lib/models/reading_group.dart
 import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/models/user.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+part 'reading_group.g.dart';
+
+@JsonSerializable()
 class GroupMember {
+  @JsonKey(name: 'userId')
   final String userId;
-  final String role; // 'admin' o 'member'
+
+  @JsonKey(name: 'role')
+  final String role; // 'admin' or 'member'
+
+  @JsonKey(name: 'currentPage')
   final int currentPage;
+
+  @JsonKey(
+      name: 'joinedAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime joinedAt;
-  final User? user; // Usuario completo (opcional)
+
+  @JsonKey(ignore: true)
+  final User? user; // User object (optional)
 
   GroupMember({
     required this.userId,
@@ -17,32 +30,27 @@ class GroupMember {
     this.user,
   });
 
-  factory GroupMember.fromJson(Map<String, dynamic> json) {
-    return GroupMember(
-      userId: json['userId'] is Map
-          ? json['userId']['_id'] ?? json['userId']['id']
-          : json['userId'],
-      role: json['role'] ?? 'member',
-      currentPage: json['currentPage'] ?? 0,
-      joinedAt: json['joinedAt'] != null
-          ? DateTime.parse(json['joinedAt'])
-          : DateTime.now(),
-      user: json['userId'] is Map ? User.fromJson(json['userId']) : null,
-    );
-  }
+  // From JSON
+  factory GroupMember.fromJson(Map<String, dynamic> json) =>
+      _$GroupMemberFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return {
-      'userId': userId,
-      'role': role,
-      'currentPage': currentPage,
-      'joinedAt': joinedAt.toIso8601String(),
-    };
-  }
+  // To JSON
+  Map<String, dynamic> toJson() => _$GroupMemberToJson(this);
+
+  // Helper methods for DateTime conversion
+  static DateTime _dateTimeFromJson(String date) => DateTime.parse(date);
+  static String _dateTimeToJson(DateTime date) => date.toIso8601String();
 }
 
+@JsonSerializable()
 class ReadingGoal {
+  @JsonKey(name: 'pagesPerDay')
   final int? pagesPerDay;
+
+  @JsonKey(
+      name: 'targetFinishDate',
+      fromJson: _dateTimeFromNullableJson,
+      toJson: _dateTimeToNullableJson)
   final DateTime? targetFinishDate;
 
   ReadingGoal({
@@ -50,39 +58,62 @@ class ReadingGoal {
     this.targetFinishDate,
   });
 
+  // From JSON
   factory ReadingGoal.fromJson(Map<String, dynamic>? json) {
     if (json == null) return ReadingGoal();
-    return ReadingGoal(
-      pagesPerDay: json['pagesPerDay'],
-      targetFinishDate: json['targetFinishDate'] != null
-          ? DateTime.parse(json['targetFinishDate'])
-          : null,
-    );
+    return _$ReadingGoalFromJson(json);
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'pagesPerDay': pagesPerDay,
-      'targetFinishDate': targetFinishDate?.toIso8601String(),
-    };
-  }
+  // To JSON
+  Map<String, dynamic> toJson() => _$ReadingGoalToJson(this);
+
+  // Helper methods for nullable DateTime conversion
+  static DateTime? _dateTimeFromNullableJson(String? date) =>
+      date != null ? DateTime.parse(date) : null;
+  static String? _dateTimeToNullableJson(DateTime? date) =>
+      date?.toIso8601String();
 }
 
+@JsonSerializable()
 class ReadingGroup {
+  @JsonKey(name: '_id')
   final String id;
+
+  @JsonKey(name: 'name')
   final String name;
+
+  @JsonKey(name: 'description')
   final String? description;
+
+  @JsonKey(name: 'bookId')
   final String bookId;
+
+  @JsonKey(name: 'creatorId')
   final String creatorId;
+
+  @JsonKey(name: 'members')
   final List<GroupMember> members;
+
+  @JsonKey(name: 'isPrivate')
   final bool isPrivate;
+
+  @JsonKey(name: 'readingGoal')
   final ReadingGoal? readingGoal;
+
+  @JsonKey(
+      name: 'createdAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime createdAt;
+
+  @JsonKey(
+      name: 'updatedAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime updatedAt;
 
   // Campos adicionales que pueden ser útiles
-  final BookDto? book; // Libro completo (opcional)
-  final User? creator; // Creador del grupo (opcional)
+  @JsonKey(ignore: true)
+  final BookDto? book; // Book object (optional)
+
+  @JsonKey(ignore: true)
+  final User? creator; // Creator user (optional)
 
   ReadingGroup({
     required this.id,
@@ -99,7 +130,9 @@ class ReadingGroup {
     this.creator,
   });
 
+  // From JSON
   factory ReadingGroup.fromJson(Map<String, dynamic> json) {
+    // Process members array
     List<GroupMember> membersList = [];
     if (json['members'] != null) {
       membersList = (json['members'] as List)
@@ -107,16 +140,24 @@ class ReadingGroup {
           .toList();
     }
 
+    // Handle id field (_id in MongoDB)
+    final id = json['_id'] ?? json['id'];
+
+    // Handle bookId and creatorId that might be objects
+    final bookId = json['bookId'] is Map
+        ? json['bookId']['_id'] ?? json['bookId']['id']
+        : json['bookId'];
+
+    final creatorId = json['creatorId'] is Map
+        ? json['creatorId']['_id'] ?? json['creatorId']['id']
+        : json['creatorId'];
+
     return ReadingGroup(
-      id: json['_id'] ?? json['id'],
+      id: id,
       name: json['name'],
       description: json['description'],
-      bookId: json['bookId'] is Map
-          ? json['bookId']['_id'] ?? json['bookId']['id']
-          : json['bookId'],
-      creatorId: json['creatorId'] is Map
-          ? json['creatorId']['_id'] ?? json['creatorId']['id']
-          : json['creatorId'],
+      bookId: bookId,
+      creatorId: creatorId,
       members: membersList,
       isPrivate: json['isPrivate'] ?? false,
       readingGoal: json['readingGoal'] != null
@@ -134,6 +175,7 @@ class ReadingGroup {
     );
   }
 
+  // To JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -144,11 +186,16 @@ class ReadingGroup {
       'members': members.map((member) => member.toJson()).toList(),
       'isPrivate': isPrivate,
       'readingGoal': readingGoal?.toJson(),
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': _dateTimeToJson(createdAt),
+      'updatedAt': _dateTimeToJson(updatedAt),
     };
   }
 
+  // Helper methods for DateTime conversion
+  static DateTime _dateTimeFromJson(String date) => DateTime.parse(date);
+  static String _dateTimeToJson(DateTime date) => date.toIso8601String();
+
+  // Utility methods
   bool isMember(String userId) {
     return members.any((member) => member.userId == userId);
   }

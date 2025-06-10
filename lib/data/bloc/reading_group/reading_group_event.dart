@@ -149,4 +149,30 @@ class ReadingGroupSendMessage extends ReadingGroupEvent {
   List<Object?> get props => [groupId, text];
 }
 
-class ReadingGroupLoadPopular extends ReadingGroupEvent {}
+// New socket-related events
+class ReadingGroupReceiveMessage extends ReadingGroupEvent {
+  final GroupMessage message;
+
+  const ReadingGroupReceiveMessage({required this.message});
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class ReadingGroupReceiveProgressUpdate extends ReadingGroupEvent {
+  final Map<String, dynamic> data;
+
+  const ReadingGroupReceiveProgressUpdate({required this.data});
+
+  @override
+  List<Object?> get props => [data];
+}
+
+class ReadingGroupKicked extends ReadingGroupEvent {
+  final String groupId;
+
+  const ReadingGroupKicked({required this.groupId});
+
+  @override
+  List<Object?> get props => [groupId];
+}

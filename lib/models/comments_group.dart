@@ -1,17 +1,33 @@
-// lib/models/group_message.dart
 import 'package:book_app_f/models/user.dart';
+import 'package:json_annotation/json_annotation.dart';
+
+part 'comments_group.g.dart';
 
 enum MessageType { text, system, progress }
 
+@JsonSerializable()
 class GroupMessage {
+  @JsonKey(name: '_id')
   final String id;
+
+  @JsonKey(name: 'groupId')
   final String groupId;
+
+  @JsonKey(name: 'userId')
   final String userId;
+
+  @JsonKey(name: 'text')
   final String text;
+
+  @JsonKey(name: 'type', fromJson: _typeFromString, toJson: _typeToString)
   final MessageType type;
+
+  @JsonKey(
+      name: 'createdAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime createdAt;
 
   // Campos adicionales que pueden ser útiles
+  @JsonKey(ignore: true)
   final User? user; // Usuario que envió el mensaje (opcional)
 
   GroupMessage({
@@ -24,6 +40,7 @@ class GroupMessage {
     this.user,
   });
 
+  // From JSON
   factory GroupMessage.fromJson(Map<String, dynamic> json) {
     return GroupMessage(
       id: json['_id'] ?? json['id'],
@@ -40,6 +57,23 @@ class GroupMessage {
     );
   }
 
+  // To JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'groupId': groupId,
+      'userId': userId,
+      'text': text,
+      'type': _typeToString(type),
+      'createdAt': _dateTimeToJson(createdAt),
+    };
+  }
+
+  // Helper methods for DateTime conversion
+  static DateTime _dateTimeFromJson(String date) => DateTime.parse(date);
+  static String _dateTimeToJson(DateTime date) => date.toIso8601String();
+
+  // Helper methods for MessageType conversion
   static MessageType _typeFromString(String type) {
     switch (type) {
       case 'text':
@@ -64,16 +98,5 @@ class GroupMessage {
       default:
         return 'text';
     }
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'groupId': groupId,
-      'userId': userId,
-      'text': text,
-      'type': _typeToString(type),
-      'createdAt': createdAt.toIso8601String(),
-    };
   }
 }

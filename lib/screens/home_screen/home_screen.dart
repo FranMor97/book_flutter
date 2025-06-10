@@ -28,17 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     context.read<HomeBloc>().add(HomeLoadDashboard());
-    _initializeSocket();
-  }
-
-  Future<void> _initializeSocket() async {
-    try {
-      final socketUrl = getIt<String>(instanceName: 'socketUrl');
-      final socketService = context.read<SocketService>();
-      await socketService.initSocket(socketUrl);
-    } catch (e) {
-      print('Error al inicializar socket: $e');
-    }
   }
 
   @override
@@ -461,7 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
-        bookRepository: getIt<IBookRepository>(),
+        socketService: getIt<SocketService>(), // Añadir SocketService
       )..add(ReadingGroupLoadUserGroups()),
       child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
         builder: (context, state) {

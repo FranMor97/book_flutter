@@ -27,12 +27,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
-  @override
-  void initState() {
-    super.initState();
-
-    context.read<ReadingGroupBloc>().add(ReadingGroupLoadPopular());
-  }
+  // ELIMINADO: La llamada en initState ya no es necesaria porque este BLoC
+  // no carga la lista de libros.
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   context.read<ReadingGroupBloc>().add(ReadingGroupLoadPopular());
+  // }
 
   @override
   void dispose() {
@@ -77,7 +78,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         return;
       }
 
-      // Crear objeto ReadingGoal si hay fecha objetivo o páginas por día
       ReadingGoal? readingGoal;
       if (_targetDate != null || _pagesPerDay != null) {
         readingGoal = ReadingGoal(
@@ -86,7 +86,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         );
       }
 
-      // Enviar evento de creación
       context.read<ReadingGroupBloc>().add(
             ReadingGroupCreate(
               name: _nameController.text,
@@ -101,8 +100,20 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
+  // NUEVA FUNCIÓN: Simplificada para navegar directamente a la búsqueda.
+  void _navigateToBookSearch() {
+    context.pushNamed('explore').then((selectedBook) {
+      if (selectedBook != null && selectedBook is BookDto) {
+        setState(() {
+          _selectedBook = selectedBook;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // El BlocListener sigue siendo válido porque los estados de creación y error no han cambiado.
     return BlocListener<ReadingGroupBloc, ReadingGroupState>(
       listener: (context, state) {
         if (state is ReadingGroupCreated) {
@@ -112,13 +123,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               backgroundColor: Colors.green,
             ),
           );
-
-          // Navegar de vuelta a la lista de grupos
-          Navigator.pop(context);
+          // Al crear el grupo con éxito, volvemos atrás.
+          // El nuevo BLoC ya despacha 'ReadingGroupLoadUserGroups' internamente.
+          context.pop();
         } else if (state is ReadingGroupError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${state.message}'),
+              content: Text('Error al crear el grupo: ${state.message}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -134,6 +145,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           actions: [
             BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
               builder: (context, state) {
+                // El estado 'ReadingGroupActionInProgress' sigue siendo válido.
                 if (state is ReadingGroupActionInProgress) {
                   return const Padding(
                     padding: EdgeInsets.all(16.0),
@@ -162,25 +174,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nombre del grupo
+                // ... (Todos los TextFormField y otros widgets se mantienen igual)
                 TextFormField(
                   controller: _nameController,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'Nombre del grupo',
                     labelStyle: TextStyle(color: Colors.grey),
-                    hintText: 'Ej. Club de lectura fantástica',
-                    hintStyle: TextStyle(color: Colors.grey),
                     prefixIcon: Icon(Icons.group, color: Colors.grey),
                     filled: true,
                     fillColor: Color(0xFF1A1A2E),
                     border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -190,8 +194,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-
-                // Descripción
                 TextFormField(
                   controller: _descriptionController,
                   style: const TextStyle(color: Colors.white),
@@ -199,23 +201,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Descripción (opcional)',
                     labelStyle: TextStyle(color: Colors.grey),
-                    hintText: 'Describe el propósito del grupo',
-                    hintStyle: TextStyle(color: Colors.grey),
                     prefixIcon: Icon(Icons.description, color: Colors.grey),
                     filled: true,
                     fillColor: Color(0xFF1A1A2E),
                     border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // Selección de libro
                 Text(
                   'Libro del grupo',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -224,45 +217,33 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-                _buildBookSelector(context),
-                const SizedBox(height: 24),
 
-                // Tipo de grupo
-                Row(
-                  children: [
-                    Text(
-                      'Configuración del grupo',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ],
+                // MODIFICADO: _buildBookSelector ya no necesita un BlocBuilder.
+                _buildBookSelector(context),
+
+                const SizedBox(height: 24),
+                // ... (El resto del formulario se mantiene igual)
+                Text(
+                  'Configuración del grupo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 SwitchListTile(
                   title: const Text('Grupo privado',
                       style: TextStyle(color: Colors.white)),
-                  subtitle: const Text(
-                    'Solo pueden unirse miembros invitados',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
+                  subtitle: const Text('Solo pueden unirse miembros invitados',
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
                   value: _isPrivate,
-                  onChanged: (value) {
-                    setState(() {
-                      _isPrivate = value;
-                    });
-                  },
+                  onChanged: (value) => setState(() => _isPrivate = value),
                   activeColor: const Color(0xFF8B5CF6),
                   tileColor: const Color(0xFF1A1A2E),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: const BorderSide(color: Colors.grey),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 const SizedBox(height: 24),
-
-                // Objetivos de lectura
                 Text(
                   'Objetivos de lectura (opcional)',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -271,8 +252,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-
-                // Fecha objetivo
                 InkWell(
                   onTap: () => _selectDate(context),
                   child: InputDecorator(
@@ -284,70 +263,41 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       filled: true,
                       fillColor: Color(0xFF1A1A2E),
                       border: OutlineInputBorder(),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                      ),
                     ),
                     child: _targetDate == null
-                        ? const Text(
-                            'Seleccionar fecha objetivo',
-                            style: TextStyle(color: Colors.grey),
-                          )
+                        ? const Text('Seleccionar fecha',
+                            style: TextStyle(color: Colors.grey))
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                _dateFormat.format(_targetDate!),
-                                style: const TextStyle(color: Colors.white),
-                              ),
+                              Text(_dateFormat.format(_targetDate!),
+                                  style: const TextStyle(color: Colors.white)),
                               IconButton(
                                 icon: const Icon(Icons.clear,
                                     color: Colors.grey, size: 18),
-                                onPressed: () {
-                                  setState(() {
-                                    _targetDate = null;
-                                  });
-                                },
+                                onPressed: () =>
+                                    setState(() => _targetDate = null),
                               ),
                             ],
                           ),
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Páginas por día
                 TextFormField(
                   keyboardType: TextInputType.number,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(
                     labelText: 'Páginas por día',
                     labelStyle: TextStyle(color: Colors.grey),
-                    hintText: 'Ej. 20',
-                    hintStyle: TextStyle(color: Colors.grey),
                     prefixIcon: Icon(Icons.menu_book, color: Colors.grey),
                     filled: true,
                     fillColor: Color(0xFF1A1A2E),
                     border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF8B5CF6)),
-                    ),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      _pagesPerDay = int.tryParse(value);
-                    });
-                  },
+                  onChanged: (value) =>
+                      setState(() => _pagesPerDay = int.tryParse(value)),
                 ),
-
                 const SizedBox(height: 32),
-
-                // Botón de creación
                 BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
                   builder: (context, state) {
                     return SizedBox(
@@ -366,10 +316,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
+                                    color: Colors.white, strokeWidth: 2))
                             : const Text('CREAR GRUPO'),
                       ),
                     );
@@ -383,217 +330,85 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     );
   }
 
+  // MODIFICADO: Este widget ya no usa BlocBuilder.
   Widget _buildBookSelector(BuildContext context) {
-    return BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-      builder: (context, state) {
-        if (state is ReadingGroupLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-          );
-        }
-
-        if (state is ReadingGroupError) {
-          return Center(
-            child: Column(
-              children: [
-                Text(
-                  'Error al cargar libros: ${state.message}',
-                  style: const TextStyle(color: Colors.white),
+    // Si ya hay un libro seleccionado, lo mostramos.
+    if (_selectedBook != null) {
+      return Card(
+        color: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: Color(0xFF8B5CF6)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 90,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  image: _selectedBook!.coverImage != null
+                      ? DecorationImage(
+                          image: NetworkImage(_selectedBook!.coverImage!),
+                          fit: BoxFit.cover)
+                      : null,
+                  color: const Color(0xFF8B5CF6),
                 ),
-                TextButton(
-                  onPressed: () {
-                    context
-                        .read<ReadingGroupBloc>()
-                        .add(ReadingGroupLoadPopular());
-                  },
-                  child: const Text('Reintentar'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        if (state is ReadingLibraryLoaded) {
-          // Si ya hay un libro seleccionado, mostrarlo
-          if (_selectedBook != null) {
-            return Card(
-              color: const Color(0xFF1A1A2E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(color: Color(0xFF8B5CF6)),
+                child: _selectedBook!.coverImage == null
+                    ? const Center(
+                        child: Text('📚', style: TextStyle(fontSize: 24)))
+                    : null,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Portada del libro
-                    Container(
-                      width: 60,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        image: _selectedBook!.coverImage != null
-                            ? DecorationImage(
-                                image: NetworkImage(_selectedBook!.coverImage!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        color: const Color(0xFF8B5CF6),
-                      ),
-                      child: _selectedBook!.coverImage == null
-                          ? const Center(
-                              child: Text('📚', style: TextStyle(fontSize: 24)),
-                            )
-                          : null,
+                    Text(
+                      _selectedBook!.title,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 16),
-
-                    // Detalles del libro
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _selectedBook!.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _selectedBook!.authors.isNotEmpty
-                                ? _selectedBook!.authors.first
-                                : 'Autor desconocido',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (_selectedBook!.pageCount != null)
-                            Text(
-                              '${_selectedBook!.pageCount} páginas',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    // Botón para cambiar libro
-                    IconButton(
-                      icon:
-                          const Icon(Icons.change_circle, color: Colors.white),
-                      onPressed: () {
-                        _showBookSelectionDialog(context, state.books);
-                      },
+                    const SizedBox(height: 4),
+                    Text(
+                      _selectedBook!.authors.isNotEmpty
+                          ? _selectedBook!.authors.first
+                          : 'Autor desconocido',
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
                     ),
                   ],
                 ),
               ),
-            );
-          }
-
-          // Si no hay libro seleccionado, mostrar botón para seleccionar
-          return OutlinedButton.icon(
-            onPressed: () {
-              _showBookSelectionDialog(context, state.books);
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.grey),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            icon: const Icon(Icons.book),
-            label: const Text('Seleccionar libro'),
-          );
-        }
-
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  void _showBookSelectionDialog(BuildContext context, List<BookDto> books) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Seleccionar libro',
-            style: TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              return ListTile(
-                leading: Container(
-                  width: 40,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    image: book.coverImage != null
-                        ? DecorationImage(
-                            image: NetworkImage(book.coverImage!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: const Color(0xFF8B5CF6),
-                  ),
-                  child: book.coverImage == null
-                      ? const Center(
-                          child: Text('📚', style: TextStyle(fontSize: 16)),
-                        )
-                      : null,
-                ),
-                title: Text(
-                  book.title,
-                  style: const TextStyle(color: Colors.white),
-                ),
-                subtitle: Text(
-                  book.authors.isNotEmpty ? book.authors.first : 'Desconocido',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                onTap: () {
-                  setState(() {
-                    _selectedBook = book;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            },
+              // El botón de cambiar ahora también navega a la búsqueda
+              IconButton(
+                icon: const Icon(Icons.change_circle_outlined,
+                    color: Colors.white),
+                tooltip: 'Cambiar libro',
+                onPressed: _navigateToBookSearch,
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () {
-              // Navegar a la pantalla de búsqueda avanzada
-              Navigator.pop(context);
-              context.pushNamed('explore').then((selectedBook) {
-                if (selectedBook != null && selectedBook is BookDto) {
-                  setState(() {
-                    _selectedBook = selectedBook;
-                  });
-                }
-              });
-            },
-            child: const Text('Buscar más libros',
-                style: TextStyle(color: Color(0xFF8B5CF6))),
-          ),
-        ],
+      );
+    }
+
+    // Si no hay libro, mostramos el botón para buscar uno.
+    return OutlinedButton.icon(
+      onPressed: _navigateToBookSearch,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.grey),
+        minimumSize: const Size(double.infinity, 50),
+        padding: const EdgeInsets.symmetric(vertical: 16),
       ),
+      icon: const Icon(Icons.search),
+      label: const Text('Seleccionar un libro'),
     );
   }
 }
