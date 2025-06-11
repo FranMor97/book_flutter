@@ -1,8 +1,6 @@
 // lib/screens/group_chat_screens/group_chat_screen.dart
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
-import 'package:book_app_f/data/services/reading_group_socket_service.dart';
-import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/comments_group.dart';
 import 'package:book_app_f/models/reading_group.dart';
@@ -11,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
@@ -26,50 +23,21 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _progressController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-
+  ReadingGroup? _group;
   late ReadingGroupBloc _readingGroupBloc;
   String? _currentUserId;
   bool _isLoadingMore = false;
-  bool _hasMoreMessages = true;
-  late ReadingGroupSocketService _groupSocketService;
-  int _currentPage = 1;
-  static const int _messagesPerPage = 20;
-  List<GroupMessage> _messages = [];
-  ReadingGroup? _currentGroup;
   bool _showProgressDialog = false;
   bool _showLeaveDialog = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeComponents();
+    _readingGroupBloc = context.read<ReadingGroupBloc>();
     _loadCurrentUser();
     _setupScrollListener();
-  }
-
-  void _initializeComponents() {
-    _readingGroupBloc = context.read<ReadingGroupBloc>();
-    final socketService = context.read<SocketService>();
-    _groupSocketService = ReadingGroupSocketService(
-      socketService: socketService,
-      onNewMessage: _handleNewMessage,
-      onProgressUpdated: _handleProgressUpdate,
-    );
-  }
-
-  void _handleNewMessage(GroupMessage message) {
-    if (mounted) {
-      setState(() {
-        _messages.insert(0, message);
-      });
-      _scrollToBottom();
-    }
-  }
-
-  void _handleProgressUpdate(Map<String, dynamic> data) {
-    if (mounted && data['groupId'] == widget.groupId) {
-      _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.groupId));
-    }
+    // Cargar el grupo inicialmente
+    _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.groupId));
   }
 
   Future<void> _loadCurrentUser() async {
@@ -83,51 +51,41 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       if (_scrollController.position.pixels >=
               _scrollController.position.maxScrollExtent - 200 &&
           !_isLoadingMore &&
-          _hasMoreMessages) {
+          _hasMoreMessages()) {
         _loadMoreMessages();
       }
     });
   }
 
-  void _connectToSocket() {
-    if (_currentGroup != null) {
-      _groupSocketService.joinGroupChat(_currentGroup!.id);
-    }
-  }
-
-  void _loadInitialMessages() {
-    if (_currentGroup != null) {
-      _readingGroupBloc.add(ReadingGroupLoadMessages(
-        groupId: _currentGroup!.id,
-        page: 1,
-        limit: _messagesPerPage,
-      ));
-    }
+  bool _hasMoreMessages() {
+    final state = _readingGroupBloc.state;
+    return state is ReadingGroupMessagesLoaded ? state.hasMoreMessages : false;
   }
 
   void _loadMoreMessages() {
-    if (_currentGroup == null) return;
+    final state = _readingGroupBloc.state;
+    if (state is! ReadingGroupMessagesLoaded) return;
 
     setState(() => _isLoadingMore = true);
     _readingGroupBloc.add(ReadingGroupLoadMessages(
-      groupId: _currentGroup!.id,
-      page: _currentPage + 1,
-      limit: _messagesPerPage,
+      groupId: state.groupId,
+      page: state.page + 1,
+      limit: 20, // Constante que antes era _messagesPerPage
     ));
   }
 
   void _sendMessage() {
-    if (_messageController.text.trim().isEmpty || _currentGroup == null) return;
+    final state = _readingGroupBloc.state;
+    if (_messageController.text.trim().isEmpty ||
+        state is! ReadingGroupMessagesLoaded) return;
 
     final text = _messageController.text.trim();
     _messageController.clear();
 
     _readingGroupBloc.add(ReadingGroupSendMessage(
-      groupId: _currentGroup!.id,
+      groupId: state.groupId,
       text: text,
     ));
-
-    _groupSocketService.sendGroupMessage(_currentGroup!.id, text);
   }
 
   void _scrollToBottom() {
@@ -141,23 +99,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _updateProgress() {
-    if (_currentGroup == null || _currentUserId == null) return;
+    final state = _readingGroupBloc.state;
+    if (state is! ReadingGroupLoaded || _currentUserId == null) return;
 
-    final currentMember = _currentGroup!.getMember(_currentUserId!);
+    final currentMember = _group!.getMember(_currentUserId!);
     if (currentMember == null) return;
 
     final page = int.tryParse(_progressController.text);
-    final maxPages = _currentGroup!.book?.pageCount ?? 0;
+    final maxPages = _group!.book?.pageCount ?? 0;
 
     if (page != null && page >= 0 && (maxPages == 0 || page <= maxPages)) {
       setState(() => _showProgressDialog = false);
 
       _readingGroupBloc.add(ReadingGroupUpdateProgress(
-        groupId: _currentGroup!.id,
+        groupId: _group!.id,
         currentPage: page,
       ));
-
-      _groupSocketService.updateReadingProgress(_currentGroup!.id, page);
     } else {
       _showSnackBar(
         maxPages > 0
@@ -169,35 +126,38 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _leaveGroup() {
-    if (_currentGroup == null) return;
+    final state = _readingGroupBloc.state;
+    if (state is! ReadingGroupLoaded) return;
 
     setState(() => _showLeaveDialog = false);
-    _readingGroupBloc.add(ReadingGroupLeave(groupId: _currentGroup!.id));
+    _readingGroupBloc.add(ReadingGroupLeave(groupId: _group!.id));
     Navigator.pop(context);
   }
 
   void _navigateToMembersScreen() {
-    if (_currentUserId == null || _currentGroup == null) return;
+    final state = _readingGroupBloc.state;
+    if (_currentUserId == null || state is! ReadingGroupLoaded) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GroupMembersList(
-          group: _currentGroup!,
+          group: state.group,
           currentUserId: _currentUserId!,
-          isAdmin: _currentGroup!.isAdmin(_currentUserId!),
+          isAdmin: _group!.isAdmin(_currentUserId!),
         ),
       ),
     );
   }
 
   void _navigateToBookDetail() {
-    if (_currentGroup?.book?.id != null) {
-      context.pushNamed(
-        'book-detail',
-        pathParameters: {'id': _currentGroup!.book!.id!},
-      );
-    }
+    final state = _readingGroupBloc.state;
+    if (state is! ReadingGroupLoaded || _group!.book?.id == null) return;
+
+    context.pushNamed(
+      'book-detail',
+      pathParameters: {'id': _group!.book!.id!},
+    );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -215,17 +175,47 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _messageController.dispose();
     _progressController.dispose();
     _scrollController.dispose();
-    _groupSocketService.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<ReadingGroupBloc, ReadingGroupState>(
-      listener: _handleBlocState,
+      listener: (context, state) {
+        if (state is ReadingGroupLoaded) {
+          setState(() {
+            _group = state.group;
+          });
+
+          _readingGroupBloc.add(ReadingGroupLoadMessages(
+            groupId: state.group.id,
+            page: 1,
+            limit: 20,
+          ));
+        }
+        if (state is ReadingGroupMessagesLoaded) {
+          // Si es la primera carga o hay un nuevo mensaje, scroll al final
+          if (state.isFirstLoad || state.needsToScrollToBottom) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _scrollToBottom());
+          }
+
+          // Marcar que ya no estamos cargando más mensajes
+          if (_isLoadingMore) {
+            setState(() => _isLoadingMore = false);
+          }
+        } else if (state is ReadingGroupError) {
+          _showSnackBar('Error: ${state.message}', isError: true);
+          if (_isLoadingMore) {
+            setState(() => _isLoadingMore = false);
+          }
+        } else if (state is ReadingGroupProgressUpdated) {
+          _showSnackBar('Progreso actualizado correctamente');
+        }
+      },
       builder: (context, state) {
         if (_showProgressDialog) {
-          return _buildProgressDialogScreen();
+          return _buildProgressDialogScreen(state);
         }
 
         if (_showLeaveDialog) {
@@ -233,49 +223,28 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         }
 
         if (state is ReadingGroupLoading ||
-            (_currentGroup == null && state is! ReadingGroupError)) {
+            (state is! ReadingGroupLoaded &&
+                state is! ReadingGroupMessagesLoaded &&
+                state is! ReadingGroupError)) {
           return _buildLoadingScreen();
         }
 
-        if (state is ReadingGroupError && _currentGroup == null) {
+        if (state is ReadingGroupError &&
+            state is! ReadingGroupLoaded &&
+            state is! ReadingGroupMessagesLoaded) {
           return _buildErrorScreen(state.message);
         }
 
-        if (_currentGroup != null) {
-          return _buildChatScreen();
+        // Para estados donde tenemos el grupo cargado
+        if (state is ReadingGroupLoaded ||
+            state is ReadingGroupMessagesLoaded) {
+          _group = state is ReadingGroupLoaded ? _group! : null;
+          return _buildChatScreen(state);
         }
 
         return _buildLoadingScreen();
       },
     );
-  }
-
-  void _handleBlocState(BuildContext context, ReadingGroupState state) {
-    if (state is ReadingGroupLoaded) {
-      _currentGroup = state.group;
-      _connectToSocket();
-      _loadInitialMessages();
-    } else if (state is ReadingGroupMessagesLoaded) {
-      setState(() {
-        if (state.page == 1) {
-          _messages = state.messages;
-        } else {
-          _messages.addAll(state.messages);
-        }
-        _currentPage = state.page;
-        _hasMoreMessages = state.hasMoreMessages;
-        _isLoadingMore = false;
-      });
-
-      if (state.isFirstLoad) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-      }
-    } else if (state is ReadingGroupError) {
-      _showSnackBar('Error: ${state.message}', isError: true);
-      setState(() => _isLoadingMore = false);
-    } else if (state is ReadingGroupProgressUpdated) {
-      _showSnackBar('Progreso actualizado correctamente');
-    }
   }
 
   Widget _buildLoadingScreen() {
@@ -326,9 +295,36 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildProgressDialogScreen() {
-    final currentMember = _currentGroup!.getMember(_currentUserId!);
-    final maxPages = _currentGroup!.book?.pageCount ?? 0;
+  Widget _buildProgressDialogScreen(ReadingGroupState state) {
+    ReadingGroup? group;
+    if (state is ReadingGroupLoaded) {
+      group = _group!;
+    } else if (state is ReadingGroupMessagesLoaded) {
+      // Aquí necesitarías obtener el grupo del estado
+      // Si tu estado ReadingGroupMessagesLoaded tiene acceso al grupo, úsalo
+      // Si no, tendrías que modificar el BLoC para incluir el grupo en ReadingGroupMessagesLoaded
+      // O mantener una referencia al grupo en el estado del widget
+      return const Scaffold(
+        backgroundColor: Color(0xFF0A0A0F),
+        body: Center(
+          child: Text(
+            'No se puede actualizar el progreso en este momento',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    } else {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0A0A0F),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+        ),
+      );
+    }
+
+    final currentMember = group.getMember(_currentUserId!);
+    final maxPages = group.book?.pageCount ?? 0;
 
     if (_progressController.text.isEmpty) {
       _progressController.text = currentMember?.currentPage.toString() ?? '0';
@@ -490,29 +486,42 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildChatScreen() {
+  Widget _buildChatScreen(ReadingGroupState state) {
+    List<GroupMessage> messages = [];
+    bool hasMoreMessages = false;
+
+    if (state is ReadingGroupMessagesLoaded) {
+      messages = state.messages;
+      hasMoreMessages = state.hasMoreMessages;
+    }
+
+    // Si no tenemos el grupo, mostramos una pantalla de carga
+    if (_group == null && messages.isEmpty) {
+      return _buildLoadingScreen();
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(_group),
       body: Column(
         children: [
-          _buildGroupProgressBar(),
-          Expanded(child: _buildMessagesList()),
+          if (_group != null) _buildGroupProgressBar(_group!),
+          Expanded(child: _buildMessagesList(messages, hasMoreMessages)),
           _buildMessageInputField(),
         ],
       ),
     );
   }
 
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(ReadingGroup? group) {
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_currentGroup!.name,
+          Text(group?.name ?? 'Grupo de Lectura',
               style: const TextStyle(color: Colors.white, fontSize: 16)),
           Text(
-            '${_currentGroup!.members.length} miembros',
+            group != null ? '${group.members.length} miembros' : '',
             style: const TextStyle(color: Colors.grey, fontSize: 12),
           ),
         ],
@@ -523,18 +532,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         onPressed: () => Navigator.of(context).pop(),
       ),
       actions: [
-        if (_currentUserId != null) _buildProgressIndicator(),
+        if (_currentUserId != null && group != null)
+          _buildProgressIndicator(group),
         _buildPopupMenu(),
       ],
     );
   }
 
-  Widget _buildProgressIndicator() {
-    final currentMember = _currentGroup!.getMember(_currentUserId!);
+  Widget _buildProgressIndicator(ReadingGroup group) {
+    final currentMember = group.getMember(_currentUserId!);
 
     if (currentMember == null) return const SizedBox.shrink();
 
-    final book = _currentGroup!.book;
+    final book = group.book;
     final progress = book?.pageCount != null && book!.pageCount! > 0
         ? currentMember.currentPage / book.pageCount!
         : 0.0;
@@ -647,18 +657,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildGroupProgressBar() {
-    final book = _currentGroup!.book;
+  Widget _buildGroupProgressBar(ReadingGroup group) {
+    final book = group.book;
     if (book?.pageCount == null || book!.pageCount! <= 0) {
       return const SizedBox.shrink();
     }
 
     int totalPages = 0;
-    for (var member in _currentGroup!.members) {
+    for (var member in group.members) {
       totalPages += member.currentPage;
     }
     final averageProgress =
-        totalPages / (_currentGroup!.members.length * book.pageCount!);
+        totalPages / (group.members.length * book.pageCount!);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -700,8 +710,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildMessagesList() {
-    if (_messages.isEmpty) {
+  Widget _buildMessagesList(List<GroupMessage> messages, bool hasMoreMessages) {
+    if (messages.isEmpty) {
       return const Center(
         child: Text(
           'No hay mensajes aún. ¡Sé el primero!',
@@ -717,7 +727,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16.0),
-              itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
+              itemCount: messages.length + (_isLoadingMore ? 1 : 0),
               reverse: true,
               itemBuilder: (context, index) {
                 if (_isLoadingMore && index == 0) {
@@ -737,7 +747,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 }
 
                 final messageIndex = _isLoadingMore ? index - 1 : index;
-                final message = _messages[messageIndex];
+                final message = messages[messageIndex];
                 final isMe = message.userId == _currentUserId;
 
                 return _buildMessageBubble(message, isMe);

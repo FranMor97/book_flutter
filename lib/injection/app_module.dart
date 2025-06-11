@@ -1,6 +1,7 @@
 import 'package:book_app_f/data/Implementations/api_user_repository.dart';
 import 'package:book_app_f/data/Implementations/dio_auth_repository.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/services/reading_group_socket_service.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,6 +73,11 @@ abstract class AppModule {
 
   @lazySingleton
   SocketService socketService() => SocketService();
+
+  @lazySingleton
+  ReadingGroupSocketService readingGroupSocketService(
+          SocketService socketService) =>
+      ReadingGroupSocketService(socketService: socketService);
 
   @lazySingleton
   CacheStore cacheStore(SharedPreferences prefs) =>

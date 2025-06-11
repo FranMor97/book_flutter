@@ -22,13 +22,22 @@ class ReadingGroupSocketService {
   }
 
   void _init() {
+    // Eliminar listeners existentes para evitar duplicados
+    _socketService.off('group-message:new');
+    _socketService.off('reading-progress:updated');
+    _socketService.off('group:kicked');
+
     // Escuchar eventos del servidor
     _socketService.on('group-message:new', _handleNewMessage);
     _socketService.on('reading-progress:updated', _handleProgressUpdated);
     _socketService.on('group:kicked', _handleKickedFromGroup);
 
-    // Debug: Agregar listeners para eventos comunes
+    // Debug: Eliminar listeners de debug existentes y añadir nuevos
     if (kDebugMode) {
+      _socketService.off('connected');
+      _socketService.off('joined:group');
+      _socketService.off('error');
+
       _socketService.on('connected', (data) {
         debugPrint('Socket connected event: $data');
       });

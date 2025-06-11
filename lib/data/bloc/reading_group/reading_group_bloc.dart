@@ -18,6 +18,7 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
   final IReadingGroupRepository readingGroupRepository;
   final IUserRepository userRepository;
   final IBookRepository bookRepository;
+  String? _currentGroupId;
 
   late final ReadingGroupSocketService _socketService;
 
@@ -27,7 +28,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     required this.bookRepository,
     required SocketService socketService, // Hacerlo obligatorio
   }) : super(ReadingGroupInitial()) {
-    // Inicializar siempre el servicio de socket
     _socketService = ReadingGroupSocketService(
       socketService: socketService,
       onNewMessage: _handleNewSocketMessage,
@@ -95,6 +95,7 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       ReadingGroup group =
           await readingGroupRepository.getGroupById(event.groupId);
 
+      _currentGroupId = event.groupId;
       // Join group chat via socket
       _socketService.joinGroupChat(event.groupId);
 
@@ -382,27 +383,23 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     Emitter<ReadingGroupState> emit,
   ) {
     final currentState = state;
+
     if (currentState is ReadingGroupMessagesLoaded &&
         event.message.groupId == currentState.groupId) {
-      // Only update the state if this message is for the current group
-      final updatedMessages = [event.message, ...currentState.messages];
+      // Verificar si el mensaje ya existe
+      final messageExists =
+          currentState.messages.any((m) => m.id == event.message.id);
 
-      emit(ReadingGroupMessagesLoaded(
-        groupId: currentState.groupId,
-        messages: updatedMessages,
-        page: currentState.page,
-        isFirstLoad: false,
-        hasMoreMessages: currentState.hasMoreMessages,
-      ));
-    }
+      if (!messageExists) {
+        // Crear una nueva lista con el mensaje nuevo al principio
+        final updatedMessages = [event.message, ...currentState.messages];
 
-    // Emit a notification state that the UI can use to show a banner
-    emit(ReadingGroupMessageReceived(message: event.message));
-
-    // Return to the previous state if needed
-    if (currentState is ReadingGroupState &&
-        !(currentState is ReadingGroupMessagesLoaded)) {
-      emit(currentState);
+        // Emitir un nuevo estado con la lista actualizada y la bandera para scrollear
+        emit(currentState.copyWith(
+          messages: updatedMessages,
+          needsToScrollToBottom: true,
+        ));
+      }
     }
   }
 

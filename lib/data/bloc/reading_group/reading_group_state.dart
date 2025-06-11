@@ -137,6 +137,7 @@ class ReadingGroupMessagesLoaded extends ReadingGroupState {
   final int page;
   final bool isFirstLoad;
   final bool hasMoreMessages;
+  final bool needsToScrollToBottom; // Nueva propiedad
 
   const ReadingGroupMessagesLoaded({
     required this.groupId,
@@ -144,11 +145,38 @@ class ReadingGroupMessagesLoaded extends ReadingGroupState {
     required this.page,
     this.isFirstLoad = true,
     this.hasMoreMessages = false,
+    this.needsToScrollToBottom = false, // Por defecto no es necesario scrollear
   });
 
+  // Método de ayuda para crear un nuevo estado con mensajes actualizados
+  ReadingGroupMessagesLoaded copyWith({
+    String? groupId,
+    List<GroupMessage>? messages,
+    int? page,
+    bool? isFirstLoad,
+    bool? hasMoreMessages,
+    bool? needsToScrollToBottom,
+  }) {
+    return ReadingGroupMessagesLoaded(
+      groupId: groupId ?? this.groupId,
+      messages: messages ?? this.messages,
+      page: page ?? this.page,
+      isFirstLoad: isFirstLoad ?? this.isFirstLoad,
+      hasMoreMessages: hasMoreMessages ?? this.hasMoreMessages,
+      needsToScrollToBottom:
+          needsToScrollToBottom ?? this.needsToScrollToBottom,
+    );
+  }
+
   @override
-  List<Object?> get props =>
-      [groupId, messages, page, isFirstLoad, hasMoreMessages];
+  List<Object?> get props => [
+        groupId,
+        messages,
+        page,
+        isFirstLoad,
+        hasMoreMessages,
+        needsToScrollToBottom
+      ];
 }
 
 class ReadingGroupMessageSent extends ReadingGroupState {
