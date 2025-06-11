@@ -1,4 +1,4 @@
-// lib/screens/group_chat_screens/group_chat_screen.dart
+// Fixed version of group_chat_screen.dart
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:book_app_f/injection.dart';
@@ -24,6 +24,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _progressController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   ReadingGroup? _group;
+  List<GroupMessage> _groupMessage = [];
   late ReadingGroupBloc _readingGroupBloc;
   String? _currentUserId;
   bool _isLoadingMore = false;
@@ -36,8 +37,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _readingGroupBloc = context.read<ReadingGroupBloc>();
     _loadCurrentUser();
     _setupScrollListener();
-    // Cargar el grupo inicialmente
-    _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.groupId));
+    // Load the group initially
+    //_readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.groupId));
   }
 
   Future<void> _loadCurrentUser() async {
@@ -70,7 +71,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _readingGroupBloc.add(ReadingGroupLoadMessages(
       groupId: state.groupId,
       page: state.page + 1,
-      limit: 20, // Constante que antes era _messagesPerPage
+      limit: 20,
     ));
   }
 
@@ -100,19 +101,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   void _updateProgress() {
     final state = _readingGroupBloc.state;
-    if (state is! ReadingGroupLoaded || _currentUserId == null) return;
+    if (state is! ReadingGroupLoaded && state is! ReadingGroupMessagesLoaded)
+      return;
 
-    final currentMember = _group!.getMember(_currentUserId!);
+    // Get the group from either state
+    final group = state is ReadingGroupLoaded ? state.group : _group;
+
+    if (group == null || _currentUserId == null) return;
+
+    final currentMember = group.getMember(_currentUserId!);
     if (currentMember == null) return;
 
     final page = int.tryParse(_progressController.text);
-    final maxPages = _group!.book?.pageCount ?? 0;
+    final maxPages = group.book?.pageCount ?? 0;
 
     if (page != null && page >= 0 && (maxPages == 0 || page <= maxPages)) {
       setState(() => _showProgressDialog = false);
 
       _readingGroupBloc.add(ReadingGroupUpdateProgress(
-        groupId: _group!.id,
+        groupId: group.id,
         currentPage: page,
       ));
     } else {
@@ -126,8 +133,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _leaveGroup() {
-    final state = _readingGroupBloc.state;
-    if (state is! ReadingGroupLoaded) return;
+    if (_group == null) return;
 
     setState(() => _showLeaveDialog = false);
     _readingGroupBloc.add(ReadingGroupLeave(groupId: _group!.id));
@@ -136,23 +142,26 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   void _navigateToMembersScreen() {
     final state = _readingGroupBloc.state;
-    if (_currentUserId == null || state is! ReadingGroupLoaded) return;
+    final group = state is ReadingGroupLoaded
+        ? state.group
+        : (state is ReadingGroupMessagesLoaded ? _group : null);
+
+    if (_currentUserId == null || group == null) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => GroupMembersList(
-          group: state.group,
+          group: group,
           currentUserId: _currentUserId!,
-          isAdmin: _group!.isAdmin(_currentUserId!),
+          isAdmin: group.isAdmin(_currentUserId!),
         ),
       ),
     );
   }
 
   void _navigateToBookDetail() {
-    final state = _readingGroupBloc.state;
-    if (state is! ReadingGroupLoaded || _group!.book?.id == null) return;
+    if (_group == null || _group!.book?.id == null) return;
 
     context.pushNamed(
       'book-detail',
@@ -192,15 +201,21 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             page: 1,
             limit: 20,
           ));
-        }
-        if (state is ReadingGroupMessagesLoaded) {
-          // Si es la primera carga o hay un nuevo mensaje, scroll al final
+        } else if (state is ReadingGroupMessagesLoaded) {
+          setState(() {
+            _groupMessage = state.messages;
+          });
+          if (_group == null && state.groupId.isNotEmpty) {
+            _readingGroupBloc.add(ReadingGroupLoadById(groupId: state.groupId));
+          }
+
+          // If it's the first load or there's a new message, scroll to the bottom
           if (state.isFirstLoad || state.needsToScrollToBottom) {
             WidgetsBinding.instance
                 .addPostFrameCallback((_) => _scrollToBottom());
           }
 
-          // Marcar que ya no estamos cargando más mensajes
+          // Mark that we're no longer loading more messages
           if (_isLoadingMore) {
             setState(() => _isLoadingMore = false);
           }
@@ -213,6 +228,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           _showSnackBar('Progreso actualizado correctamente');
         }
       },
+      buildWhen: (previous, current) {
+        // Rebuild on these specific state changes
+        return current is ReadingGroupLoaded ||
+            current is ReadingGroupMessagesLoaded ||
+            current is ReadingGroupLoading ||
+            current is ReadingGroupError;
+      },
       builder: (context, state) {
         if (_showProgressDialog) {
           return _buildProgressDialogScreen(state);
@@ -222,10 +244,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           return _buildLeaveDialogScreen();
         }
 
-        if (state is ReadingGroupLoading ||
-            (state is! ReadingGroupLoaded &&
-                state is! ReadingGroupMessagesLoaded &&
-                state is! ReadingGroupError)) {
+        if (state is ReadingGroupLoading &&
+            state is! ReadingGroupLoaded &&
+            state is! ReadingGroupMessagesLoaded) {
           return _buildLoadingScreen();
         }
 
@@ -235,10 +256,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           return _buildErrorScreen(state.message);
         }
 
-        // Para estados donde tenemos el grupo cargado
+        // For states where we have the group loaded
         if (state is ReadingGroupLoaded ||
             state is ReadingGroupMessagesLoaded) {
-          _group = state is ReadingGroupLoaded ? _group! : null;
           return _buildChatScreen(state);
         }
 
@@ -298,12 +318,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Widget _buildProgressDialogScreen(ReadingGroupState state) {
     ReadingGroup? group;
     if (state is ReadingGroupLoaded) {
-      group = _group!;
+      group = state.group;
     } else if (state is ReadingGroupMessagesLoaded) {
-      // Aquí necesitarías obtener el grupo del estado
-      // Si tu estado ReadingGroupMessagesLoaded tiene acceso al grupo, úsalo
-      // Si no, tendrías que modificar el BLoC para incluir el grupo en ReadingGroupMessagesLoaded
-      // O mantener una referencia al grupo en el estado del widget
+      group = _group;
+    } else {
       return const Scaffold(
         backgroundColor: Color(0xFF0A0A0F),
         body: Center(
@@ -314,7 +332,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
       );
-    } else {
+    }
+
+    if (group == null || _currentUserId == null) {
       return const Scaffold(
         backgroundColor: Color(0xFF0A0A0F),
         body: Center(
@@ -495,7 +515,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       hasMoreMessages = state.hasMoreMessages;
     }
 
-    // Si no tenemos el grupo, mostramos una pantalla de carga
+    // If we don't have the group, show a loading screen
     if (_group == null && messages.isEmpty) {
       return _buildLoadingScreen();
     }
@@ -520,10 +540,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           Text(group?.name ?? 'Grupo de Lectura',
               style: const TextStyle(color: Colors.white, fontSize: 16)),
-          Text(
-            group != null ? '${group.members.length} miembros' : '',
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
+          if (group != null)
+            Text(
+              '${group.members.length} miembros',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
         ],
       ),
       backgroundColor: const Color(0xFF1A1A2E),
@@ -710,7 +731,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildMessagesList(List<GroupMessage> messages, bool hasMoreMessages) {
+  Widget _buildMessagesList(
+    List<GroupMessage> messages,
+    bool hasMoreMessages,
+  ) {
+    final state = context.watch<ReadingGroupBloc>().state;
+    if (state is ReadingGroupMessagesLoaded) {
+      messages = state.messages;
+    }
+
     if (messages.isEmpty) {
       return const Center(
         child: Text(
@@ -720,62 +749,58 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       );
     }
 
-    return BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-      builder: (context, state) {
-        return Stack(
-          children: [
-            ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16.0),
-              itemCount: messages.length + (_isLoadingMore ? 1 : 0),
-              reverse: true,
-              itemBuilder: (context, index) {
-                if (_isLoadingMore && index == 0) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFF8B5CF6),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final messageIndex = _isLoadingMore ? index - 1 : index;
-                final message = messages[messageIndex];
-                final isMe = message.userId == _currentUserId;
-
-                return _buildMessageBubble(message, isMe);
-              },
-            ),
-            if (state is ReadingGroupActionInProgress)
-              Positioned(
-                bottom: 70,
-                right: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const SizedBox(
+    return Stack(
+      children: [
+        ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.all(16.0),
+          itemCount: messages.length + (_isLoadingMore ? 1 : 0),
+          reverse: true,
+          itemBuilder: (context, index) {
+            if (_isLoadingMore && index == 0) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: SizedBox(
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: Color(0xFF8B5CF6),
                     ),
                   ),
                 ),
+              );
+            }
+
+            final messageIndex = _isLoadingMore ? index - 1 : index;
+            final message = messages[messageIndex];
+            final isMe = message.userId == _currentUserId;
+
+            return _buildMessageBubble(message, isMe);
+          },
+        ),
+        if (_readingGroupBloc.state is ReadingGroupActionInProgress)
+          Positioned(
+            bottom: 70,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(20),
               ),
-          ],
-        );
-      },
+              child: const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

@@ -9,32 +9,34 @@ import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 
 part 'reading_group_event.dart';
+
 part 'reading_group_state.dart';
 
 class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
   final IReadingGroupRepository readingGroupRepository;
   final IUserRepository userRepository;
   final IBookRepository bookRepository;
-  String? _currentGroupId;
+  final SocketService socketService;
 
-  late final ReadingGroupSocketService _socketService;
+  String? _currentGroupId;
+  ReadingGroupSocketService? _socketServiceInstance;
+
+  // Track processed message IDs to avoid duplicates
+  final Set<String> _processedMessageIds = {};
+
+  // Track if we're currently sending a message to avoid duplicates
+  bool _isSendingMessage = false;
 
   ReadingGroupBloc({
     required this.readingGroupRepository,
     required this.userRepository,
     required this.bookRepository,
-    required SocketService socketService, // Hacerlo obligatorio
+    required this.socketService,
   }) : super(ReadingGroupInitial()) {
-    _socketService = ReadingGroupSocketService(
-      socketService: socketService,
-      onNewMessage: _handleNewSocketMessage,
-      onProgressUpdated: _handleProgressUpdate,
-      onKickedFromGroup: _handleKickedFromGroup,
-    );
-
     on<ReadingGroupLoadUserGroups>(_onLoadUserGroups);
     on<ReadingGroupLoadById>(_onLoadById);
     on<ReadingGroupCreate>(_onCreate);
@@ -51,15 +53,58 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     on<ReadingGroupKicked>(_onKicked);
   }
 
+  void _initializeSocketService() {
+    // Dispose previous instance if exists
+    _disposeSocketService();
+
+    _socketServiceInstance = ReadingGroupSocketService(
+      socketService: socketService,
+      onNewMessage: _handleNewSocketMessage,
+      onProgressUpdated: _handleProgressUpdate,
+      onKickedFromGroup: _handleKickedFromGroup,
+    );
+
+    debugPrint('ReadingGroupBloc: Socket service initialized');
+  }
+
+  void _disposeSocketService() {
+    if (_socketServiceInstance != null) {
+      _socketServiceInstance!.dispose();
+      _socketServiceInstance = null;
+      debugPrint('ReadingGroupBloc: Socket service disposed');
+    }
+  }
+
   @override
   Future<void> close() {
-    _socketService?.dispose();
+    _disposeSocketService();
+    _processedMessageIds.clear();
     return super.close();
   }
 
   // Socket event handlers
   void _handleNewSocketMessage(GroupMessage message) {
-    add(ReadingGroupReceiveMessage(message: message));
+    // Create a unique ID for the message if it doesn't have one
+    final messageId = message.id ??
+        '${message.userId}_${message.text}_${message.createdAt.millisecondsSinceEpoch}';
+
+    // Check if we've already processed this message
+    if (_processedMessageIds.contains(messageId)) {
+      debugPrint('ReadingGroupBloc: Ignoring duplicate message: $messageId');
+      return;
+    }
+
+    // Check if this message is for the current group
+    if (_currentGroupId != null && message.groupId == _currentGroupId) {
+      _processedMessageIds.add(messageId);
+
+      // Clean up old message IDs if too many
+      if (_processedMessageIds.length > 1000) {
+        _processedMessageIds.clear();
+      }
+
+      add(ReadingGroupReceiveMessage(message: message));
+    }
   }
 
   void _handleProgressUpdate(Map<String, dynamic> data) {
@@ -92,12 +137,24 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     emit(ReadingGroupLoading());
 
     try {
+      // Leave previous group if different
+      if (_currentGroupId != null && _currentGroupId != event.groupId) {}
+
       ReadingGroup group =
           await readingGroupRepository.getGroupById(event.groupId);
 
       _currentGroupId = event.groupId;
+
+      // Clear processed messages when changing groups
+      _processedMessageIds.clear();
+
+      // Initialize socket service if not already done
+      if (_socketServiceInstance == null) {
+        _initializeSocketService();
+      }
+
       // Join group chat via socket
-      _socketService.joinGroupChat(event.groupId);
+      _socketServiceInstance?.joinGroupChat(event.groupId);
 
       UserDto? creator = await userRepository.getUserById(group.creatorId);
       BookDto? book = await bookRepository.getBookById(group.bookId);
@@ -128,8 +185,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       );
 
       emit(ReadingGroupCreated(group: group));
-
-      // Load user groups after creation
       add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -152,8 +207,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
       );
 
       emit(ReadingGroupUpdated(group: group));
-
-      // Reload the group to show updated information
       add(ReadingGroupLoadById(groupId: event.groupId));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -193,12 +246,14 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     try {
       final group = await readingGroupRepository.joinGroup(event.groupId);
 
-      // Join the group chat via socket
-      _socketService?.joinGroupChat(event.groupId);
+      // Initialize socket service if needed
+      if (_socketServiceInstance == null) {
+        _initializeSocketService();
+      }
+
+      _socketServiceInstance?.joinGroupChat(event.groupId);
 
       emit(ReadingGroupJoined(group: group));
-
-      // Reload user groups after joining
       add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -213,9 +268,14 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
 
     try {
       await readingGroupRepository.leaveGroup(event.groupId);
-      emit(const ReadingGroupLeft());
 
-      // Reload user groups after leaving
+      // Leave socket roomDateTime.now().millisecondsSinceEpoch,
+
+      if (_currentGroupId == event.groupId) {
+        _currentGroupId = null;
+      }
+
+      emit(const ReadingGroupLeft());
       add(ReadingGroupLoadUserGroups());
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -241,7 +301,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         action: event.action,
       ));
 
-      // Reload group to show updated members
       add(ReadingGroupLoadById(groupId: event.groupId));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
@@ -252,27 +311,34 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     ReadingGroupUpdateProgress event,
     Emitter<ReadingGroupState> emit,
   ) async {
-    emit(ReadingGroupActionInProgress());
+    final currentState = state;
 
     try {
-      // Update via API
+      // Update via API ONLY (server will broadcast via socket)
       final group = await readingGroupRepository.updateReadingProgress(
         groupId: event.groupId,
         currentPage: event.currentPage,
       );
 
-      // Also update via socket for real-time updates to other members
-      _socketService?.updateReadingProgress(event.groupId, event.currentPage);
+      // Don't send via socket here - the server will broadcast it
+      // This prevents duplicate progress updates
 
-      emit(ReadingGroupProgressUpdated(
-        group: group,
-        currentPage: event.currentPage,
-      ));
-
-      // Reload group to show updated progress
-      add(ReadingGroupLoadById(groupId: event.groupId));
+      // If we're in messages loaded state, preserve it
+      if (currentState is ReadingGroupMessagesLoaded) {
+        emit(currentState);
+      } else {
+        emit(ReadingGroupProgressUpdated(
+          group: group,
+          currentPage: event.currentPage,
+        ));
+      }
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
+
+      // Return to previous state
+      if (currentState is ReadingGroupMessagesLoaded) {
+        emit(currentState);
+      }
     }
   }
 
@@ -280,11 +346,9 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     ReadingGroupLoadMessages event,
     Emitter<ReadingGroupState> emit,
   ) async {
-    // If it's a refresh (page 1), show loading state
     if (event.page == 1) {
       emit(ReadingGroupMessagesLoading());
     } else {
-      // For pagination, we need to keep the current state (don't show loading)
       final currentState = state;
       if (currentState is ReadingGroupMessagesLoaded) {
         emit(ReadingGroupMessagesLoadingMore(
@@ -302,7 +366,13 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         limit: event.limit,
       );
 
-      // If we're loading a page beyond the first, we need to combine messages
+      // Add message IDs to processed set
+      for (var message in messages) {
+        if (message.id != null) {
+          _processedMessageIds.add(message.id!);
+        }
+      }
+
       final currentState = state;
       if (currentState is ReadingGroupMessagesLoaded && event.page > 1) {
         final combinedMessages = [...currentState.messages, ...messages];
@@ -314,7 +384,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
           hasMoreMessages: messages.length >= event.limit,
         ));
       } else {
-        // First load or refresh
         emit(ReadingGroupMessagesLoaded(
           groupId: event.groupId,
           messages: messages,
@@ -332,52 +401,42 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     ReadingGroupSendMessage event,
     Emitter<ReadingGroupState> emit,
   ) async {
-    // Store current state to return to it if needed
+    // Prevent duplicate sends
+    if (_isSendingMessage) {
+      debugPrint(
+          'ReadingGroupBloc: Already sending message, ignoring duplicate');
+      return;
+    }
+
+    _isSendingMessage = true;
     final currentState = state;
 
     try {
-      // Send message via API
+      // Send message via API ONLY (the server will broadcast via socket)
       final message = await readingGroupRepository.sendGroupMessage(
         groupId: event.groupId,
         text: event.text,
       );
 
-      // Also send via socket for real-time updates
-      _socketService?.sendGroupMessage(event.groupId, event.text);
-
-      // If we're in the messages state, update it with the new message
-      if (currentState is ReadingGroupMessagesLoaded) {
-        // Add the new message to the top of the list (most recent first)
-        final updatedMessages = [message, ...currentState.messages];
-
-        emit(ReadingGroupMessagesLoaded(
-          groupId: currentState.groupId,
-          messages: updatedMessages,
-          page: currentState.page,
-          isFirstLoad: false,
-          hasMoreMessages: currentState.hasMoreMessages,
-        ));
+      if (message.id != null) {
+        _processedMessageIds.add(message.id!);
       }
 
-      // Emit a specific "message sent" state that can be used for showing a temporary notification
-      emit(ReadingGroupMessageSent(message: message));
-
-      // Return to the previous state if needed
-      if (currentState is ReadingGroupState &&
-          !(currentState is ReadingGroupMessagesLoaded)) {
+      if (currentState is ReadingGroupMessagesLoaded) {
+        // Keep the current state, the message will be added when received via socket
         emit(currentState);
       }
     } catch (e) {
       emit(ReadingGroupMessageError(message: e.toString()));
 
-      // Return to the previous state after showing the error
       if (currentState is ReadingGroupState) {
         emit(currentState);
       }
+    } finally {
+      _isSendingMessage = false;
     }
   }
 
-  // Handle real-time updates from sockets
   void _onReceiveMessage(
     ReadingGroupReceiveMessage event,
     Emitter<ReadingGroupState> emit,
@@ -386,20 +445,25 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
 
     if (currentState is ReadingGroupMessagesLoaded &&
         event.message.groupId == currentState.groupId) {
-      // Verificar si el mensaje ya existe
-      final messageExists =
-          currentState.messages.any((m) => m.id == event.message.id);
+      // Create a unique identifier for the message
+      final messageId = event.message.id ??
+          '${event.message.userId}_${event.message.text.hashCode}_${event.message.createdAt.millisecondsSinceEpoch}';
 
-      if (!messageExists) {
-        // Crear una nueva lista con el mensaje nuevo al principio
-        final updatedMessages = [event.message, ...currentState.messages];
+      // Add to processed set
+      _processedMessageIds.add(messageId);
 
-        // Emitir un nuevo estado con la lista actualizada y la bandera para scrollear
-        emit(currentState.copyWith(
-          messages: updatedMessages,
-          needsToScrollToBottom: true,
-        ));
-      }
+      // Add message to the list
+      final updatedMessages = [
+        ...currentState.messages,
+        event.message,
+      ];
+
+      // Sort messages by creation date to ensure correct order
+      updatedMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // emit(currentState.copyWith(
+      //     messages: updatedMessages, hasMoreMessages: true));
+      add(ReadingGroupLoadMessages(groupId: currentState.groupId, page: 1));
     }
   }
 
@@ -408,44 +472,20 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     Emitter<ReadingGroupState> emit,
   ) {
     final currentState = state;
-    if (currentState is ReadingGroupLoaded) {
-      // Extract data from the socket event
+
+    // Handle progress update for both ReadingGroupLoaded and ReadingGroupMessagesLoaded states
+    if (currentState is ReadingGroupLoaded ||
+        currentState is ReadingGroupMessagesLoaded) {
       final String userId = event.data['userId'];
       final int currentPage = event.data['currentPage'];
       final String groupId = event.data['groupId'];
 
-      // Only update if this is for the current group
-      if (groupId == currentState.group.id) {
-        // Update the member's progress in the group
-        final updatedMembers = currentState.group.members.map((member) {
-          if (member.userId == userId) {
-            // Create a new member with updated progress
-            return GroupMember(
-              userId: member.userId,
-              role: member.role,
-              currentPage: currentPage,
-              joinedAt: member.joinedAt,
-              user: member.user,
-            );
-          }
-          return member;
-        }).toList();
-
-        // Create a new group with updated members
-        final updatedGroup = ReadingGroup(
-          id: currentState.group.id,
-          name: currentState.group.name,
-          description: currentState.group.description,
-          bookId: currentState.group.bookId,
-          creatorId: currentState.group.creatorId,
-          members: updatedMembers,
-          isPrivate: currentState.group.isPrivate,
-          readingGoal: currentState.group.readingGoal,
-          createdAt: currentState.group.createdAt,
-          updatedAt: currentState.group.updatedAt,
-        );
-
-        emit(ReadingGroupLoaded(group: updatedGroup));
+      if (groupId == _currentGroupId) {
+        // If we're in messages loaded state, just emit the current state
+        // The UI will update based on the progress message
+        if (currentState is ReadingGroupMessagesLoaded) {
+          emit(currentState);
+        }
       }
     }
   }
@@ -456,16 +496,12 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
   ) {
     final currentState = state;
 
-    // Emit a kicked state to notify the user
     emit(ReadingGroupKickedFromGroup(groupId: event.groupId));
 
-    // If the user was viewing the group they were kicked from, redirect to groups list
-    if (currentState is ReadingGroupLoaded &&
-        currentState.group.id == event.groupId) {
-      // Reload user groups to get updated list
+    if (_currentGroupId == event.groupId) {
+      _currentGroupId = null;
       add(ReadingGroupLoadUserGroups());
     } else if (currentState is ReadingGroupState) {
-      // Otherwise return to previous state
       emit(currentState);
     }
   }

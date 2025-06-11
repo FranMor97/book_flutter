@@ -175,7 +175,7 @@ class ReadingGroupMessagesLoaded extends ReadingGroupState {
         page,
         isFirstLoad,
         hasMoreMessages,
-        needsToScrollToBottom
+        needsToScrollToBottom,
       ];
 }
 

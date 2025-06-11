@@ -1,0 +1,1 @@
+C:\Users\Francisco\AndroidStudioProjects\book_app_f\build\app\intermediates\cxx\RelWithDebInfo\5k1i2d5u\obj\x86_64

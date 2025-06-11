@@ -196,6 +196,7 @@ class AppRouter {
         name: readingGroups,
         path: readingGroupsPath,
         builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
             userRepository: getIt<IUserRepository>(),
@@ -221,6 +222,7 @@ class AppRouter {
         name: searchGroups,
         path: searchGroupsPath,
         builder: (context, state) => BlocProvider(
+          key: UniqueKey(),
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
             userRepository: getIt<IUserRepository>(),
