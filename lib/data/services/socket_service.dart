@@ -73,7 +73,6 @@ class SocketService with ChangeNotifier {
       notifyListeners();
     });
 
-    // Eventos específicos de la aplicación
     _socket?.on('connected', (data) {
       print('Socket.IO: Conectado con éxito al servidor');
       if (data['groups'] != null) {

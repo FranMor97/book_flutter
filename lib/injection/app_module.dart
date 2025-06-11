@@ -1,6 +1,7 @@
 import 'package:book_app_f/data/Implementations/api_user_repository.dart';
 import 'package:book_app_f/data/Implementations/dio_auth_repository.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -68,6 +69,9 @@ abstract class AppModule {
   // IAuthRepository authRepository(SharedPreferences sharedPreferences) {
   //   return DioAuthRepository(sharedPreferences);
   // }
+
+  @lazySingleton
+  SocketService socketService() => SocketService();
 
   @lazySingleton
   CacheStore cacheStore(SharedPreferences prefs) =>

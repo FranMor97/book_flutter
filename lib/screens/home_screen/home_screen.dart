@@ -5,14 +5,13 @@ import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/data/repositories/book_user_repository.dart';
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
+import 'package:book_app_f/data/repositories/user_repository.dart';
 import 'package:book_app_f/injection.dart';
-import 'package:book_app_f/screens/user_screens/friends_screens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../data/bloc/home/home_bloc.dart';
 import '../../../models/dtos/book_user_dto.dart';
-import '../../../models/dtos/book_dto.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:provider/provider.dart';
 
@@ -450,6 +449,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
+        userRepository: getIt<IUserRepository>(),
+        bookRepository: getIt<IBookRepository>(),
         socketService: getIt<SocketService>(), // Añadir SocketService
       )..add(ReadingGroupLoadUserGroups()),
       child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
@@ -561,7 +562,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     )
                   else
-                    // Mostrar los grupos del usuario (limitado a 2 para la vista home)
                     Column(
                       children: state.groups.take(2).map((group) {
                         final book = group.book;

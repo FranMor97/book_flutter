@@ -3,9 +3,11 @@ import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
+import 'package:book_app_f/routes/book_routes.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class SearchGroupsScreen extends StatefulWidget {
   const SearchGroupsScreen({Key? key}) : super(key: key);
@@ -144,13 +146,17 @@ class _SearchGroupsScreenState extends State<SearchGroupsScreen> {
                   );
 
                   // Navigate to the group chat screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GroupChatScreen(
-                        group: state.group,
-                      ),
-                    ),
+                  // Navigator.push(
+                  //   context,
+                  //   MaterialPageRoute(
+                  //     builder: (context) => GroupChatScreen(
+                  //       groupId: state.group.id,
+                  //     ),
+                  //   ),
+                  // );
+                  context.goNamed(
+                    'groupChat',
+                    pathParameters: {'groupId': state.group.id},
                   );
                 } else if (state is ReadingGroupError) {
                   ScaffoldMessenger.of(context).showSnackBar(

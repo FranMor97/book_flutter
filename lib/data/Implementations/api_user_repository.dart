@@ -67,8 +67,11 @@ class ApiUserRepository implements IUserRepository {
   Future<UserDto> login(UserDto loginDto) async {
     try {
       // Realizar petición HTTP usando Dio
+
+      final baseUrl = '$_baseUrl/auth/login';
+
       final response = await _dio.post(
-        '$_baseUrl/auth/login',
+        baseUrl,
         data: {
           'email': loginDto.email,
           'password': loginDto.password,
@@ -179,6 +182,42 @@ class ApiUserRepository implements IUserRepository {
       // Si hay error, limpiamos el token y retornamos null
       await _clearToken();
       return null;
+    }
+  }
+
+  @override
+  Future<UserDto> getUserById(String userId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('No se encontró un token de autenticación');
+      }
+
+      final response = await _dio.get(
+        '$_baseUrl/auth/user/$userId', // Cambiado el endpoint
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final userData = response.data['data'] != null
+            ? UserDto.fromJson(response.data['data'])
+            : UserDto.fromJson(response.data);
+        return userData;
+      } else {
+        throw Exception('No se pudo obtener el usuario');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+        if (e.response?.statusCode == 404) {
+          throw Exception('Usuario no encontrado');
+        } else if (e.response?.statusCode == 401) {
+          throw Exception('No autorizado para acceder a este usuario');
+        }
+        throw Exception(errorMessage);
+      }
+      throw Exception('Error de conexión: ${e.message}');
+    } catch (e) {
+      throw Exception('Error al obtener usuario por ID: ${e.toString()}');
     }
   }
 

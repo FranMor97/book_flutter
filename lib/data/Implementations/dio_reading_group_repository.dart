@@ -49,9 +49,9 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
 
       if (response.statusCode == 200 && response.data != null) {
         final responseData = _ensureMapResponse(response.data);
-        return ReadingGroup.fromJson(responseData);
+        final data = ReadingGroup.fromJson(responseData);
+        return data;
       }
-
       throw Exception('Error al cargar el grupo');
     } on DioException catch (e) {
       throw _handleDioException(e);

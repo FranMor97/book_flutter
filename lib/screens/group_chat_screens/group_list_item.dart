@@ -4,6 +4,7 @@ import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class GroupListItem extends StatelessWidget {
   final ReadingGroup group;
@@ -372,11 +373,15 @@ class GroupListItem extends StatelessWidget {
   }
 
   void _navigateToGroupChat(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GroupChatScreen(group: group),
-      ),
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => GroupChatScreen(groupId: group.id),
+    //   ),
+    // );
+    context.goNamed(
+      'groupChat',
+      pathParameters: {'groupId': group.id},
     );
   }
 

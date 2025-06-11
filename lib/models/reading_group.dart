@@ -2,6 +2,8 @@ import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/models/user.dart';
 import 'package:json_annotation/json_annotation.dart';
 
+import 'dtos/user_dto.dart';
+
 part 'reading_group.g.dart';
 
 @JsonSerializable()
@@ -19,8 +21,9 @@ class GroupMember {
       name: 'joinedAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime joinedAt;
 
-  @JsonKey(ignore: true)
-  final User? user; // User object (optional)
+  // Ya no es @JsonKey(ignore: true) porque ahora viene del backend
+  @JsonKey(name: 'user')
+  final User? user; // User object (populated from backend)
 
   GroupMember({
     required this.userId,
@@ -31,8 +34,23 @@ class GroupMember {
   });
 
   // From JSON
-  factory GroupMember.fromJson(Map<String, dynamic> json) =>
-      _$GroupMemberFromJson(json);
+  factory GroupMember.fromJson(Map<String, dynamic> json) {
+    // Manejar el caso en que 'user' venga como objeto
+    User? userObj;
+    if (json['user'] != null) {
+      userObj = User.fromJson(json['user']);
+    }
+
+    return GroupMember(
+      userId: json['userId'],
+      role: json['role'] ?? 'member',
+      currentPage: json['currentPage'] ?? 0,
+      joinedAt: json['joinedAt'] != null
+          ? DateTime.parse(json['joinedAt'])
+          : DateTime.now(),
+      user: userObj,
+    );
+  }
 
   // To JSON
   Map<String, dynamic> toJson() => _$GroupMemberToJson(this);
@@ -76,7 +94,7 @@ class ReadingGoal {
 
 @JsonSerializable()
 class ReadingGroup {
-  @JsonKey(name: '_id')
+  @JsonKey(name: 'id')
   final String id;
 
   @JsonKey(name: 'name')
@@ -108,12 +126,9 @@ class ReadingGroup {
       name: 'updatedAt', fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime updatedAt;
 
-  // Campos adicionales que pueden ser útiles
-  @JsonKey(ignore: true)
-  final BookDto? book; // Book object (optional)
+  BookDto? book;
 
-  @JsonKey(ignore: true)
-  final User? creator; // Creator user (optional)
+  UserDto? creator;
 
   ReadingGroup({
     required this.id,
@@ -130,9 +145,48 @@ class ReadingGroup {
     this.creator,
   });
 
+  ReadingGroup copyWithRelatedData({
+    BookDto? book,
+    UserDto? creator,
+  }) {
+    return ReadingGroup(
+      id: id,
+      name: name,
+      description: description,
+      bookId: bookId,
+      creatorId: creatorId,
+      members: members,
+      isPrivate: isPrivate,
+      readingGoal: readingGoal,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      book: book ?? this.book,
+      creator: creator ?? this.creator,
+    );
+  }
+
   // From JSON
   factory ReadingGroup.fromJson(Map<String, dynamic> json) {
-    // Process members array
+    // Manejar id (puede venir como _id o id)
+    final String groupId = json['id'] ?? json['_id'];
+
+    // Manejar bookId (podría ser un string directo o venir de un objeto)
+    String bookIdValue;
+    if (json['bookId'] is Map) {
+      bookIdValue = json['bookId']['id'] ?? json['bookId']['_id'];
+    } else {
+      bookIdValue = json['bookId'];
+    }
+
+    // Manejar creatorId (podría ser un string directo o venir de un objeto)
+    String creatorIdValue;
+    if (json['creatorId'] is Map) {
+      creatorIdValue = json['creatorId']['id'] ?? json['creatorId']['_id'];
+    } else {
+      creatorIdValue = json['creatorId'];
+    }
+
+    // Procesar miembros
     List<GroupMember> membersList = [];
     if (json['members'] != null) {
       membersList = (json['members'] as List)
@@ -140,38 +194,19 @@ class ReadingGroup {
           .toList();
     }
 
-    // Handle id field (_id in MongoDB)
-    final id = json['_id'] ?? json['id'];
-
-    // Handle bookId and creatorId that might be objects
-    final bookId = json['bookId'] is Map
-        ? json['bookId']['_id'] ?? json['bookId']['id']
-        : json['bookId'];
-
-    final creatorId = json['creatorId'] is Map
-        ? json['creatorId']['_id'] ?? json['creatorId']['id']
-        : json['creatorId'];
-
     return ReadingGroup(
-      id: id,
+      id: groupId,
       name: json['name'],
       description: json['description'],
-      bookId: bookId,
-      creatorId: creatorId,
+      bookId: bookIdValue,
+      creatorId: creatorIdValue,
       members: membersList,
       isPrivate: json['isPrivate'] ?? false,
       readingGoal: json['readingGoal'] != null
           ? ReadingGoal.fromJson(json['readingGoal'])
           : null,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
-          : DateTime.now(),
-      book: json['bookId'] is Map ? BookDto.fromJson(json['bookId']) : null,
-      creator:
-          json['creatorId'] is Map ? User.fromJson(json['creatorId']) : null,
+      createdAt: _dateTimeFromJson(json['createdAt']),
+      updatedAt: _dateTimeFromJson(json['updatedAt']),
     );
   }
 
@@ -188,6 +223,8 @@ class ReadingGroup {
       'readingGoal': readingGoal?.toJson(),
       'createdAt': _dateTimeToJson(createdAt),
       'updatedAt': _dateTimeToJson(updatedAt),
+      // No incluimos book y creator en toJson ya que son
+      // objetos de solo lectura que vienen del backend
     };
   }
 

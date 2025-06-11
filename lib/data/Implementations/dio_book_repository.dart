@@ -1,7 +1,6 @@
 import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/models/book_comments.dart';
 import 'package:book_app_f/models/comment_user.dart';
-import 'package:book_app_f/models/user.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import '../../models/dtos/book_dto.dart';

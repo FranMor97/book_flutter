@@ -1,5 +1,6 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/repositories/user_repository.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/routes/book_routes.dart';
@@ -21,6 +22,8 @@ class ReadingGroupsScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => ReadingGroupBloc(
         readingGroupRepository: getIt<IReadingGroupRepository>(),
+        userRepository: getIt<IUserRepository>(),
+        bookRepository: getIt<IBookRepository>(),
         socketService: getIt<SocketService>(),
       )..add(ReadingGroupLoadUserGroups()),
       child: Scaffold(
@@ -86,7 +89,9 @@ class ReadingGroupsScreen extends StatelessWidget {
         floatingActionButton: FloatingActionButton(
           backgroundColor: const Color(0xFF8B5CF6),
           child: const Icon(Icons.add),
-          onPressed: () {},
+          onPressed: () {
+            context.goNamed(AppRouter.createGroupScreen);
+          },
         ),
       ),
     );
@@ -134,7 +139,7 @@ class ReadingGroupsScreen extends StatelessWidget {
             const SizedBox(height: 12),
             TextButton.icon(
               onPressed: () {
-                context.goNamed(AppRouter.createGroupScreen);
+                context.pushNamed(AppRouter.createGroupScreen);
               },
               icon: const Icon(Icons.search, color: Color(0xFF8B5CF6)),
               label: const Text(

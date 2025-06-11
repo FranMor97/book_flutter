@@ -17,4 +17,6 @@ abstract class IUserRepository {
   Future<UserDto?> getUserWithStoredToken();
 
   Future<UserDto> updateProfile(UserDto userDto);
+
+  Future<UserDto> getUserById(String userId);
 }

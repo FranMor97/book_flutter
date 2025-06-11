@@ -18,14 +18,13 @@ Future<void> main() async {
     env = Environment.dev;
   }
 
-  await configureDependencies(env: Environment.prod);
+  await configureDependencies(env: env);
 
   registerServices();
 
   runApp(
     MultiProvider(
       providers: [
-        // Usa la instancia de SocketService de GetIt en lugar de crear una nueva
         ChangeNotifierProvider.value(value: getIt<SocketService>()),
       ],
       child: const MyApp(),

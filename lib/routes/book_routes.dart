@@ -15,6 +15,7 @@ import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_chat_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/reading_groups_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/search_group_screen.dart';
+import 'package:book_app_f/screens/group_chat_screens/select_book_screen.dart';
 import 'package:book_app_f/screens/login/views/login_screen.dart';
 import 'package:book_app_f/screens/login/views/register_screen.dart';
 import 'package:book_app_f/screens/splash_screen.dart';
@@ -59,8 +60,8 @@ class AppRouter {
   static const String searchGroups = 'search-groups';
   static const String groupChat = 'group-chat';
   static const String friendScreen = 'friend-screen';
-  static const String createGroupScreen =
-      'create-group'; // Pantalla de amigos (opcional)
+  static const String createGroupScreen = 'create-group';
+  static const String selectBookScreen = 'select-book-screen';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -77,8 +78,8 @@ class AppRouter {
   static const String searchGroupsPath = '/search-groups';
   static const String groupChatPath = '/group-chat/:id';
   static const String friendScreenPath = '/friend-screen';
-  static const String createGroupScreenPath =
-      '/create-group'; // Pantalla de amigos (opcional)
+  static const String createGroupScreenPath = '/create-group';
+  static const String selectBookScreenPath = '/select-book-screen';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -181,11 +182,24 @@ class AppRouter {
         ),
       ),
       GoRoute(
+        name: 'select-book-screen',
+        path: '/select-book',
+        builder: (context, state) => BlocProvider(
+          create: (context) =>
+              BookLibraryBloc(bookRepository: getIt<IBookRepository>())
+                ..add(BookLibraryLoadBooks()),
+          child: const SelectBookScreen(),
+        ),
+      ),
+
+      GoRoute(
         name: readingGroups,
         path: readingGroupsPath,
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
+            userRepository: getIt<IUserRepository>(),
+            bookRepository: getIt<IBookRepository>(),
             socketService: getIt<SocketService>(), // Añadir SocketService
           )..add(ReadingGroupLoadUserGroups()),
           child: const ReadingGroupsScreen(),
@@ -209,6 +223,8 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
+            userRepository: getIt<IUserRepository>(),
+            bookRepository: getIt<IBookRepository>(),
             socketService: getIt<SocketService>(), // Añadir SocketService
           ),
           child: const SearchGroupsScreen(),
@@ -216,6 +232,7 @@ class AppRouter {
       ),
 
       // Chat de grupo (necesita el ID del grupo)
+
       GoRoute(
         name: groupChat,
         path: groupChatPath,
@@ -224,23 +241,11 @@ class AppRouter {
           return BlocProvider(
             create: (context) => ReadingGroupBloc(
               readingGroupRepository: getIt<IReadingGroupRepository>(),
-              socketService: getIt<SocketService>(), // Añadir SocketService
+              userRepository: getIt<IUserRepository>(),
+              bookRepository: getIt<IBookRepository>(),
+              socketService: getIt<SocketService>(),
             )..add(ReadingGroupLoadById(groupId: groupId)),
-            child: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-              builder: (context, state) {
-                if (state is ReadingGroupLoaded) {
-                  return GroupChatScreen(group: state.group);
-                }
-
-                // Pantalla de carga mientras se obtiene el grupo
-                return const Scaffold(
-                  backgroundColor: Color(0xFF0A0A0F),
-                  body: Center(
-                    child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-                  ),
-                );
-              },
-            ),
+            child: GroupChatScreen(groupId: groupId),
           );
         },
       ),
@@ -250,6 +255,8 @@ class AppRouter {
         builder: (context, state) => BlocProvider(
           create: (context) => ReadingGroupBloc(
             readingGroupRepository: getIt<IReadingGroupRepository>(),
+            userRepository: getIt<IUserRepository>(),
+            bookRepository: getIt<IBookRepository>(),
             socketService: getIt<SocketService>(), // Añadir SocketService
           ),
           child: const CreateGroupScreen(),

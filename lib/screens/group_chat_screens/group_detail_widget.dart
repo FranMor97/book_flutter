@@ -11,9 +11,9 @@ class GroupDetailWidget extends StatelessWidget {
   final ReadingGroup group;
 
   const GroupDetailWidget({
-    Key? key,
+    super.key,
     required this.group,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

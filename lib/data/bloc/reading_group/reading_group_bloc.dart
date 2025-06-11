@@ -1,9 +1,12 @@
-// lib/data/bloc/reading_group/reading_group_bloc.dart
 import 'package:bloc/bloc.dart';
+import 'package:book_app_f/data/repositories/book_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
+import 'package:book_app_f/data/repositories/user_repository.dart';
 import 'package:book_app_f/data/services/reading_group_socket_service.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/models/comments_group.dart';
+import 'package:book_app_f/models/dtos/book_dto.dart';
+import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
@@ -13,10 +16,15 @@ part 'reading_group_state.dart';
 
 class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
   final IReadingGroupRepository readingGroupRepository;
+  final IUserRepository userRepository;
+  final IBookRepository bookRepository;
+
   late final ReadingGroupSocketService _socketService;
 
   ReadingGroupBloc({
     required this.readingGroupRepository,
+    required this.userRepository,
+    required this.bookRepository,
     required SocketService socketService, // Hacerlo obligatorio
   }) : super(ReadingGroupInitial()) {
     // Inicializar siempre el servicio de socket
@@ -84,10 +92,18 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
     emit(ReadingGroupLoading());
 
     try {
-      final group = await readingGroupRepository.getGroupById(event.groupId);
+      ReadingGroup group =
+          await readingGroupRepository.getGroupById(event.groupId);
 
       // Join group chat via socket
       _socketService.joinGroupChat(event.groupId);
+
+      UserDto? creator = await userRepository.getUserById(group.creatorId);
+      BookDto? book = await bookRepository.getBookById(group.bookId);
+      group = group.copyWithRelatedData(
+        creator: creator,
+        book: book,
+      );
 
       emit(ReadingGroupLoaded(group: group));
     } catch (e) {
@@ -430,8 +446,6 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
           readingGoal: currentState.group.readingGoal,
           createdAt: currentState.group.createdAt,
           updatedAt: currentState.group.updatedAt,
-          book: currentState.group.book,
-          creator: currentState.group.creator,
         );
 
         emit(ReadingGroupLoaded(group: updatedGroup));

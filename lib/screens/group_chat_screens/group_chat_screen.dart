@@ -9,13 +9,14 @@ import 'package:book_app_f/models/reading_group.dart';
 import 'package:book_app_f/screens/group_chat_screens/group_member_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class GroupChatScreen extends StatefulWidget {
-  final ReadingGroup group;
+  final String groupId;
 
-  const GroupChatScreen({super.key, required this.group});
+  const GroupChatScreen({super.key, required this.groupId});
 
   @override
   State<GroupChatScreen> createState() => _GroupChatScreenState();
@@ -23,7 +24,9 @@ class GroupChatScreen extends StatefulWidget {
 
 class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _progressController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
   late ReadingGroupBloc _readingGroupBloc;
   String? _currentUserId;
   bool _isLoadingMore = false;
@@ -32,50 +35,47 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   int _currentPage = 1;
   static const int _messagesPerPage = 20;
   List<GroupMessage> _messages = [];
+  ReadingGroup? _currentGroup;
+  bool _showProgressDialog = false;
+  bool _showLeaveDialog = false;
 
   @override
   void initState() {
     super.initState();
+    _initializeComponents();
+    _loadCurrentUser();
+    _setupScrollListener();
+  }
+
+  void _initializeComponents() {
     _readingGroupBloc = context.read<ReadingGroupBloc>();
     final socketService = context.read<SocketService>();
     _groupSocketService = ReadingGroupSocketService(
       socketService: socketService,
-      onNewMessage: (message) {
-        if (mounted) {
-          setState(() {
-            _messages.insert(0, message);
-          });
-          _scrollToBottom();
-        }
-      },
-      onProgressUpdated: (data) {
-        if (mounted && data['groupId'] == widget.group.id) {
-          _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.group.id));
-        }
-      },
+      onNewMessage: _handleNewMessage,
+      onProgressUpdated: _handleProgressUpdate,
     );
-    _loadCurrentUser();
-    _loadInitialMessages();
-    _setupScrollListener();
-    _connectToSocket();
+  }
+
+  void _handleNewMessage(GroupMessage message) {
+    if (mounted) {
+      setState(() {
+        _messages.insert(0, message);
+      });
+      _scrollToBottom();
+    }
+  }
+
+  void _handleProgressUpdate(Map<String, dynamic> data) {
+    if (mounted && data['groupId'] == widget.groupId) {
+      _readingGroupBloc.add(ReadingGroupLoadById(groupId: widget.groupId));
+    }
   }
 
   Future<void> _loadCurrentUser() async {
     final authRepository = getIt<IAuthRepository>();
     _currentUserId = await authRepository.getCurrentUserId();
-    setState(() {});
-  }
-
-  void _loadInitialMessages() {
-    _readingGroupBloc.add(ReadingGroupLoadMessages(
-      groupId: widget.group.id,
-      page: 1,
-      limit: _messagesPerPage,
-    ));
-  }
-
-  void _connectToSocket() {
-    _groupSocketService.joinGroupChat(widget.group.id);
+    if (mounted) setState(() {});
   }
 
   void _setupScrollListener() {
@@ -89,41 +89,45 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     });
   }
 
-  void _loadMoreMessages() {
-    setState(() {
-      _isLoadingMore = true;
-    });
+  void _connectToSocket() {
+    if (_currentGroup != null) {
+      _groupSocketService.joinGroupChat(_currentGroup!.id);
+    }
+  }
 
+  void _loadInitialMessages() {
+    if (_currentGroup != null) {
+      _readingGroupBloc.add(ReadingGroupLoadMessages(
+        groupId: _currentGroup!.id,
+        page: 1,
+        limit: _messagesPerPage,
+      ));
+    }
+  }
+
+  void _loadMoreMessages() {
+    if (_currentGroup == null) return;
+
+    setState(() => _isLoadingMore = true);
     _readingGroupBloc.add(ReadingGroupLoadMessages(
-      groupId: widget.group.id,
+      groupId: _currentGroup!.id,
       page: _currentPage + 1,
       limit: _messagesPerPage,
     ));
   }
 
-  @override
-  void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
-    _groupSocketService.dispose();
-    super.dispose();
-  }
-
   void _sendMessage() {
-    if (_messageController.text.trim().isNotEmpty) {
-      final text = _messageController.text.trim();
-      _messageController.clear();
+    if (_messageController.text.trim().isEmpty || _currentGroup == null) return;
 
-      // Enviar a través del bloc (HTTP)
-      _readingGroupBloc.add(
-        ReadingGroupSendMessage(
-          groupId: widget.group.id,
-          text: text,
-        ),
-      );
+    final text = _messageController.text.trim();
+    _messageController.clear();
 
-      _groupSocketService.sendGroupMessage(widget.group.id, text);
-    }
+    _readingGroupBloc.add(ReadingGroupSendMessage(
+      groupId: _currentGroup!.id,
+      text: text,
+    ));
+
+    _groupSocketService.sendGroupMessage(_currentGroup!.id, text);
   }
 
   void _scrollToBottom() {
@@ -136,27 +140,222 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  void _showUpdateProgressDialog() {
-    final progressController = TextEditingController();
-    final currentMember = widget.group.getMember(_currentUserId ?? '');
+  void _updateProgress() {
+    if (_currentGroup == null || _currentUserId == null) return;
 
+    final currentMember = _currentGroup!.getMember(_currentUserId!);
     if (currentMember == null) return;
 
-    progressController.text = currentMember.currentPage.toString();
-    final book = widget.group.book;
-    final int maxPages = book?.pageCount ?? 0;
+    final page = int.tryParse(_progressController.text);
+    final maxPages = _currentGroup!.book?.pageCount ?? 0;
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+    if (page != null && page >= 0 && (maxPages == 0 || page <= maxPages)) {
+      setState(() => _showProgressDialog = false);
+
+      _readingGroupBloc.add(ReadingGroupUpdateProgress(
+        groupId: _currentGroup!.id,
+        currentPage: page,
+      ));
+
+      _groupSocketService.updateReadingProgress(_currentGroup!.id, page);
+    } else {
+      _showSnackBar(
+        maxPages > 0
+            ? 'Por favor, introduce un número entre 0 y $maxPages'
+            : 'Por favor, introduce un número válido',
+        isError: true,
+      );
+    }
+  }
+
+  void _leaveGroup() {
+    if (_currentGroup == null) return;
+
+    setState(() => _showLeaveDialog = false);
+    _readingGroupBloc.add(ReadingGroupLeave(groupId: _currentGroup!.id));
+    Navigator.pop(context);
+  }
+
+  void _navigateToMembersScreen() {
+    if (_currentUserId == null || _currentGroup == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GroupMembersList(
+          group: _currentGroup!,
+          currentUserId: _currentUserId!,
+          isAdmin: _currentGroup!.isAdmin(_currentUserId!),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToBookDetail() {
+    if (_currentGroup?.book?.id != null) {
+      context.pushNamed(
+        'book-detail',
+        pathParameters: {'id': _currentGroup!.book!.id!},
+      );
+    }
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _progressController.dispose();
+    _scrollController.dispose();
+    _groupSocketService.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<ReadingGroupBloc, ReadingGroupState>(
+      listener: _handleBlocState,
+      builder: (context, state) {
+        if (_showProgressDialog) {
+          return _buildProgressDialogScreen();
+        }
+
+        if (_showLeaveDialog) {
+          return _buildLeaveDialogScreen();
+        }
+
+        if (state is ReadingGroupLoading ||
+            (_currentGroup == null && state is! ReadingGroupError)) {
+          return _buildLoadingScreen();
+        }
+
+        if (state is ReadingGroupError && _currentGroup == null) {
+          return _buildErrorScreen(state.message);
+        }
+
+        if (_currentGroup != null) {
+          return _buildChatScreen();
+        }
+
+        return _buildLoadingScreen();
+      },
+    );
+  }
+
+  void _handleBlocState(BuildContext context, ReadingGroupState state) {
+    if (state is ReadingGroupLoaded) {
+      _currentGroup = state.group;
+      _connectToSocket();
+      _loadInitialMessages();
+    } else if (state is ReadingGroupMessagesLoaded) {
+      setState(() {
+        if (state.page == 1) {
+          _messages = state.messages;
+        } else {
+          _messages.addAll(state.messages);
+        }
+        _currentPage = state.page;
+        _hasMoreMessages = state.hasMoreMessages;
+        _isLoadingMore = false;
+      });
+
+      if (state.isFirstLoad) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      }
+    } else if (state is ReadingGroupError) {
+      _showSnackBar('Error: ${state.message}', isError: true);
+      setState(() => _isLoadingMore = false);
+    } else if (state is ReadingGroupProgressUpdated) {
+      _showSnackBar('Progreso actualizado correctamente');
+    }
+  }
+
+  Widget _buildLoadingScreen() {
+    return const Scaffold(
+      backgroundColor: Color(0xFF0A0A0F),
+      body: Center(
+        child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+      ),
+    );
+  }
+
+  Widget _buildErrorScreen(String message) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
+      appBar: AppBar(
+        title: const Text('Error', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF1A1A2E),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 64),
+            const SizedBox(height: 16),
+            Text(
+              'Error: $message',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                _readingGroupBloc
+                    .add(ReadingGroupLoadById(groupId: widget.groupId));
+              },
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6)),
+              child: const Text('Reintentar',
+                  style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressDialogScreen() {
+    final currentMember = _currentGroup!.getMember(_currentUserId!);
+    final maxPages = _currentGroup!.book?.pageCount ?? 0;
+
+    if (_progressController.text.isEmpty) {
+      _progressController.text = currentMember?.currentPage.toString() ?? '0';
+    }
+
+    final progress = maxPages > 0 && currentMember != null
+        ? currentMember.currentPage / maxPages
+        : 0.0;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
+      appBar: AppBar(
         title: const Text('Actualizar Progreso',
             style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        backgroundColor: const Color(0xFF1A1A2E),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => setState(() => _showProgressDialog = false),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
-              controller: progressController,
+              controller: _progressController,
               style: const TextStyle(color: Colors.white),
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
@@ -172,339 +371,170 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            // Barra de progreso visual
+            const SizedBox(height: 24),
             if (maxPages > 0) ...[
               LinearProgressIndicator(
-                value: currentMember.currentPage / maxPages,
+                value: progress,
                 backgroundColor: Colors.grey[800],
                 valueColor:
                     const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                minHeight: 8,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                '${(currentMember.currentPage / maxPages * 100).round()}% completado',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
+                '${(progress * 100).round()}% completado',
+                style: const TextStyle(color: Colors.grey, fontSize: 14),
+                textAlign: TextAlign.center,
               ),
+              const SizedBox(height: 32),
             ],
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () =>
+                        setState(() => _showProgressDialog = false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Cancelar',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _updateProgress,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Guardar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final page = int.tryParse(progressController.text);
-              if (page != null &&
-                  page >= 0 &&
-                  (maxPages == 0 || page <= maxPages)) {
-                Navigator.pop(context);
-
-                // Actualizar progreso
-                _readingGroupBloc.add(
-                  ReadingGroupUpdateProgress(
-                    groupId: widget.group.id,
-                    currentPage: page,
-                  ),
-                );
-
-                // También actualizar por socket
-                _groupSocketService.updateReadingProgress(
-                    widget.group.id, page);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(maxPages > 0
-                        ? 'Por favor, introduce un número entre 0 y $maxPages'
-                        : 'Por favor, introduce un número válido'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Guardar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
 
-  void _showLeaveGroupConfirmation() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Abandonar Grupo',
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
-            '¿Estás seguro de que quieres abandonar este grupo? Esta acción no se puede deshacer.',
-            style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _readingGroupBloc.add(ReadingGroupLeave(
-                groupId: widget.group.id,
-              ));
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child:
-                const Text('Abandonar', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _navigateToMembersScreen() {
-    if (_currentUserId == null) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GroupMembersList(
-          group: widget.group,
-          currentUserId: _currentUserId!,
-          isAdmin: widget.group.isAdmin(_currentUserId!),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildLeaveDialogScreen() {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(widget.group.name,
-                style: const TextStyle(color: Colors.white, fontSize: 16)),
-            Text(
-              '${widget.group.members.length} miembros',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
+        title: const Text('Abandonar Grupo',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF1A1A2E),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => setState(() => _showLeaveDialog = false),
         ),
-        actions: [
-          // Mostrar progreso del usuario actual
-          if (_currentUserId != null) _buildProgressIndicator(),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            color: const Color(0xFF1A1A2E),
-            onSelected: (value) {
-              switch (value) {
-                case 'update_progress':
-                  _showUpdateProgressDialog();
-                  break;
-                case 'view_members':
-                  _navigateToMembersScreen();
-                  break;
-                case 'view_book':
-                  if (widget.group.book?.id != null) {
-                    Navigator.pushNamed(
-                      context,
-                      'book-detail',
-                      arguments: widget.group.book!.id,
-                    );
-                  }
-                  break;
-                case 'leave_group':
-                  _showLeaveGroupConfirmation();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'update_progress',
-                child: Row(
-                  children: [
-                    Icon(Icons.menu_book, color: Color(0xFF8B5CF6)),
-                    SizedBox(width: 8),
-                    Text('Actualizar Progreso',
-                        style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'view_members',
-                child: Row(
-                  children: [
-                    Icon(Icons.people, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('Ver Miembros', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'view_book',
-                child: Row(
-                  children: [
-                    Icon(Icons.book, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text('Ver Libro', style: TextStyle(color: Colors.white)),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'leave_group',
-                child: Row(
-                  children: [
-                    Icon(Icons.exit_to_app, color: Colors.redAccent),
-                    SizedBox(width: 8),
-                    Text('Abandonar Grupo',
-                        style: TextStyle(color: Colors.redAccent)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(Icons.warning, color: Colors.orange, size: 64),
+            const SizedBox(height: 24),
+            const Text(
+              '¿Estás seguro de que quieres abandonar este grupo?',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Esta acción no se puede deshacer y perderás acceso a todos los mensajes y progreso del grupo.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => setState(() => _showLeaveDialog = false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.grey),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Cancelar',
+                        style: TextStyle(color: Colors.grey)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _leaveGroup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Abandonar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatScreen() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
+      appBar: _buildAppBar(),
       body: Column(
         children: [
-          // Barra de progreso del grupo
           _buildGroupProgressBar(),
-
-          // Mensajes del chat
-          Expanded(
-            child: BlocConsumer<ReadingGroupBloc, ReadingGroupState>(
-              listener: (context, state) {
-                if (state is ReadingGroupMessagesLoaded) {
-                  setState(() {
-                    if (state.page == 1) {
-                      _messages = state.messages;
-                    } else {
-                      _messages.addAll(state.messages);
-                    }
-                    _currentPage = state.page;
-                    _hasMoreMessages = state.hasMoreMessages;
-                    _isLoadingMore = false;
-                  });
-
-                  if (state.isFirstLoad) {
-                    WidgetsBinding.instance
-                        .addPostFrameCallback((_) => _scrollToBottom());
-                  }
-                } else if (state is ReadingGroupError) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: ${state.message}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  setState(() {
-                    _isLoadingMore = false;
-                  });
-                } else if (state is ReadingGroupProgressUpdated) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Progreso actualizado correctamente'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              },
-              builder: (context, state) {
-                if (state is ReadingGroupMessagesLoading && _messages.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-                  );
-                }
-
-                if (_messages.isEmpty &&
-                    state is! ReadingGroupMessagesLoading) {
-                  return const Center(
-                    child: Text(
-                      'No hay mensajes aún. ¡Sé el primero!',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                  );
-                }
-
-                return Stack(
-                  children: [
-                    ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(16.0),
-                      itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
-                      reverse: true,
-                      itemBuilder: (context, index) {
-                        if (_isLoadingMore && index == 0) {
-                          return const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFF8B5CF6),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-
-                        final messageIndex = _isLoadingMore ? index - 1 : index;
-                        final message = _messages[messageIndex];
-                        final isMe = message.userId == _currentUserId;
-
-                        return _buildMessageBubble(message, isMe);
-                      },
-                    ),
-                    if (state is ReadingGroupActionInProgress)
-                      Positioned(
-                        bottom: 70,
-                        right: 16,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildMessagesList()),
           _buildMessageInputField(),
         ],
       ),
     );
   }
 
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_currentGroup!.name,
+              style: const TextStyle(color: Colors.white, fontSize: 16)),
+          Text(
+            '${_currentGroup!.members.length} miembros',
+            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          ),
+        ],
+      ),
+      backgroundColor: const Color(0xFF1A1A2E),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      actions: [
+        if (_currentUserId != null) _buildProgressIndicator(),
+        _buildPopupMenu(),
+      ],
+    );
+  }
+
   Widget _buildProgressIndicator() {
-    final currentMember = widget.group.getMember(_currentUserId!);
+    final currentMember = _currentGroup!.getMember(_currentUserId!);
+
     if (currentMember == null) return const SizedBox.shrink();
 
-    final book = widget.group.book;
+    final book = _currentGroup!.book;
     final progress = book?.pageCount != null && book!.pageCount! > 0
         ? currentMember.currentPage / book.pageCount!
         : 0.0;
@@ -512,7 +542,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: InkWell(
-        onTap: _showUpdateProgressDialog,
+        onTap: () => setState(() => _showProgressDialog = true),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -549,27 +579,92 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
+  Widget _buildPopupMenu() {
+    return PopupMenuButton<String>(
+      icon: const Icon(Icons.more_vert, color: Colors.white),
+      color: const Color(0xFF1A1A2E),
+      onSelected: (value) {
+        switch (value) {
+          case 'update_progress':
+            setState(() => _showProgressDialog = true);
+            break;
+          case 'view_members':
+            _navigateToMembersScreen();
+            break;
+          case 'view_book':
+            _navigateToBookDetail();
+            break;
+          case 'leave_group':
+            setState(() => _showLeaveDialog = true);
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) => [
+        const PopupMenuItem<String>(
+          value: 'update_progress',
+          child: Row(
+            children: [
+              Icon(Icons.menu_book, color: Color(0xFF8B5CF6)),
+              SizedBox(width: 8),
+              Text('Actualizar Progreso',
+                  style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'view_members',
+          child: Row(
+            children: [
+              Icon(Icons.people, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Ver Miembros', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'view_book',
+          child: Row(
+            children: [
+              Icon(Icons.book, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Ver Libro', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+          value: 'leave_group',
+          child: Row(
+            children: [
+              Icon(Icons.exit_to_app, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('Abandonar Grupo',
+                  style: TextStyle(color: Colors.redAccent)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGroupProgressBar() {
-    final book = widget.group.book;
+    final book = _currentGroup!.book;
     if (book?.pageCount == null || book!.pageCount! <= 0) {
       return const SizedBox.shrink();
     }
 
-    // Calcular progreso promedio del grupo
     int totalPages = 0;
-    for (var member in widget.group.members) {
+    for (var member in _currentGroup!.members) {
       totalPages += member.currentPage;
     }
     final averageProgress =
-        totalPages / (widget.group.members.length * book.pageCount!);
+        totalPages / (_currentGroup!.members.length * book.pageCount!);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[800]!),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey[800]!)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -577,21 +672,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Progreso del grupo',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
               ),
               Text(
                 '${(averageProgress * 100).round()}%',
                 style: const TextStyle(
-                  color: Color(0xFF8B5CF6),
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Color(0xFF8B5CF6),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -604,6 +697,75 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMessagesList() {
+    if (_messages.isEmpty) {
+      return const Center(
+        child: Text(
+          'No hay mensajes aún. ¡Sé el primero!',
+          style: TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      );
+    }
+
+    return BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
+      builder: (context, state) {
+        return Stack(
+          children: [
+            ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _messages.length + (_isLoadingMore ? 1 : 0),
+              reverse: true,
+              itemBuilder: (context, index) {
+                if (_isLoadingMore && index == 0) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFF8B5CF6),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
+                final messageIndex = _isLoadingMore ? index - 1 : index;
+                final message = _messages[messageIndex];
+                final isMe = message.userId == _currentUserId;
+
+                return _buildMessageBubble(message, isMe);
+              },
+            ),
+            if (state is ReadingGroupActionInProgress)
+              Positioned(
+                bottom: 70,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 

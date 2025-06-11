@@ -45,10 +45,14 @@ class ReadingGroupUserGroupsLoaded extends ReadingGroupState {
 class ReadingGroupLoaded extends ReadingGroupState {
   final ReadingGroup group;
 
-  const ReadingGroupLoaded({required this.group});
+  const ReadingGroupLoaded({
+    required this.group,
+  });
 
   @override
-  List<Object?> get props => [group];
+  List<Object?> get props => [
+        group,
+      ];
 }
 
 class ReadingGroupCreated extends ReadingGroupState {

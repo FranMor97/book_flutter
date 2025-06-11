@@ -22,34 +22,68 @@ class ReadingGroupSocketService {
   }
 
   void _init() {
-    // Listen to socket events related to reading groups
+    // Escuchar eventos del servidor
     _socketService.on('group-message:new', _handleNewMessage);
     _socketService.on('reading-progress:updated', _handleProgressUpdated);
     _socketService.on('group:kicked', _handleKickedFromGroup);
+
+    // Debug: Agregar listeners para eventos comunes
+    if (kDebugMode) {
+      _socketService.on('connected', (data) {
+        debugPrint('Socket connected event: $data');
+      });
+
+      _socketService.on('joined:group', (data) {
+        debugPrint('Joined group event: $data');
+      });
+
+      _socketService.on('error', (data) {
+        debugPrint('Socket error event: $data');
+      });
+    }
   }
 
   void dispose() {
-    // Remove listeners when not needed
+    // Remover listeners
     _socketService.off('group-message:new');
     _socketService.off('reading-progress:updated');
     _socketService.off('group:kicked');
+
+    if (kDebugMode) {
+      _socketService.off('connected');
+      _socketService.off('joined:group');
+      _socketService.off('error');
+    }
   }
 
   void _handleNewMessage(dynamic data) {
     try {
-      final message = GroupMessage.fromJson(data);
-      if (onNewMessage != null) {
-        onNewMessage!(message);
+      debugPrint('Received new message data: $data');
+
+      GroupMessage message;
+
+      if (data is GroupMessage) {
+        message = data;
+      } else if (data is Map<String, dynamic>) {
+        message = GroupMessage.fromJson(data);
+      } else {
+        debugPrint('Unknown data type for message: ${data.runtimeType}');
+        return;
       }
+
+      onNewMessage?.call(message);
     } catch (e) {
       debugPrint('Error parsing socket message: $e');
+      debugPrint('Raw data: $data');
     }
   }
 
   void _handleProgressUpdated(dynamic data) {
     try {
-      if (onProgressUpdated != null) {
-        onProgressUpdated!(data as Map<String, dynamic>);
+      debugPrint('Progress updated data: $data');
+
+      if (onProgressUpdated != null && data is Map<String, dynamic>) {
+        onProgressUpdated!(data);
       }
     } catch (e) {
       debugPrint('Error handling progress update: $e');
@@ -58,6 +92,8 @@ class ReadingGroupSocketService {
 
   void _handleKickedFromGroup(dynamic data) {
     try {
+      debugPrint('Kicked from group data: $data');
+
       if (onKickedFromGroup != null && data is Map<String, dynamic>) {
         onKickedFromGroup!(data['groupId']);
       }
@@ -68,15 +104,18 @@ class ReadingGroupSocketService {
 
   // Methods to emit events
   void joinGroupChat(String groupId) {
+    debugPrint('Joining group: $groupId');
     _socketService.emit('join:group', {'groupId': groupId});
   }
 
   void sendGroupMessage(String groupId, String text) {
+    debugPrint('Sending message to group $groupId: $text');
     _socketService
         .emit('send:group-message', {'groupId': groupId, 'text': text});
   }
 
   void updateReadingProgress(String groupId, int currentPage) {
+    debugPrint('Updating progress for group $groupId: page $currentPage');
     _socketService.emit('update:reading-progress',
         {'groupId': groupId, 'currentPage': currentPage});
   }

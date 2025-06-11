@@ -101,14 +101,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   }
 
   // NUEVA FUNCIÓN: Simplificada para navegar directamente a la búsqueda.
-  void _navigateToBookSearch() {
-    context.pushNamed('explore').then((selectedBook) {
-      if (selectedBook != null && selectedBook is BookDto) {
-        setState(() {
-          _selectedBook = selectedBook;
-        });
-      }
-    });
+  Future<void> _navigateToBookSearch() async {
+    final result = await context.pushNamed<BookDto?>('select-book-screen');
+    if (result != null) {
+      setState(() {
+        _selectedBook = result;
+      });
+    }
   }
 
   @override
