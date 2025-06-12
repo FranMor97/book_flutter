@@ -1,13 +1,10 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
 import 'package:book_app_f/data/repositories/auth_repository.dart';
-import 'package:book_app_f/data/repositories/user_repository.dart';
-import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
 import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
-import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
 import 'package:go_router/go_router.dart';
@@ -19,80 +16,71 @@ class ReadingGroupsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => ReadingGroupBloc(
-        readingGroupRepository: getIt<IReadingGroupRepository>(),
-        userRepository: getIt<IUserRepository>(),
-        bookRepository: getIt<IBookRepository>(),
-        socketService: getIt<SocketService>(),
-      )..add(ReadingGroupLoadUserGroups()),
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0A0A0F),
-        appBar: AppBar(
-          title: const Text('Grupos de Lectura',
-              style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF1A1A2E),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
-              onPressed: () {
-                context.goNamed(AppRouter.searchGroups);
-              },
-            ),
-          ],
-        ),
-        body: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
-          builder: (context, state) {
-            if (state is ReadingGroupLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-              );
-            }
-
-            if (state is ReadingGroupUserGroupsLoaded) {
-              return _buildGroupsList(context, state.groups);
-            }
-
-            if (state is ReadingGroupError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 60, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Error: ${state.message}',
-                      style: const TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => context
-                          .read<ReadingGroupBloc>()
-                          .add(ReadingGroupLoadUserGroups()),
-                      child: const Text('Reintentar'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A0F),
+      appBar: AppBar(
+        title: const Text('Grupos de Lectura',
+            style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF1A1A2E),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search, color: Colors.white),
+            onPressed: () {
+              context.pushNamed(AppRouter.searchGroups);
+            },
+          ),
+        ],
+      ),
+      body: BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
+        builder: (context, state) {
+          if (state is ReadingGroupLoading) {
             return const Center(
-              child: Text(
-                'Cargando grupos...',
-                style: TextStyle(color: Colors.white),
+              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+            );
+          }
+
+          if (state is ReadingGroupUserGroupsLoaded) {
+            return _buildGroupsList(context, state.groups);
+          }
+
+          if (state is ReadingGroupError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${state.message}',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => context
+                        .read<ReadingGroupBloc>()
+                        .add(ReadingGroupLoadUserGroups()),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
               ),
             );
-          },
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: const Color(0xFF8B5CF6),
-          child: const Icon(Icons.add),
-          onPressed: () {
-            context.goNamed(AppRouter.createGroupScreen);
-          },
-        ),
+          }
+
+          return const Center(
+            child: Text(
+              'Cargando grupos...',
+              style: TextStyle(color: Colors.white),
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF8B5CF6),
+        child: const Icon(Icons.add),
+        onPressed: () {
+          context.goNamed(AppRouter.createGroupScreen);
+        },
       ),
     );
   }
@@ -168,7 +156,8 @@ class ReadingGroupsScreen extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
-              context.goNamed(AppRouter.groupChat);
+              context.pushNamed(AppRouter.groupChat,
+                  pathParameters: {'id': group.id});
             },
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

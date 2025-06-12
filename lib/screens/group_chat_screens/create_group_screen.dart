@@ -27,14 +27,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
-  // ELIMINADO: La llamada en initState ya no es necesaria porque este BLoC
-  // no carga la lista de libros.
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   context.read<ReadingGroupBloc>().add(ReadingGroupLoadPopular());
-  // }
-
   @override
   void dispose() {
     _nameController.dispose();
@@ -100,7 +92,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
-  // NUEVA FUNCIÓN: Simplificada para navegar directamente a la búsqueda.
   Future<void> _navigateToBookSearch() async {
     final result = await context.pushNamed<BookDto?>('select-book-screen');
     if (result != null) {
@@ -112,7 +103,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // El BlocListener sigue siendo válido porque los estados de creación y error no han cambiado.
     return BlocListener<ReadingGroupBloc, ReadingGroupState>(
       listener: (context, state) {
         if (state is ReadingGroupCreated) {
@@ -122,8 +112,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          // Al crear el grupo con éxito, volvemos atrás.
-          // El nuevo BLoC ya despacha 'ReadingGroupLoadUserGroups' internamente.
           context.pop();
         } else if (state is ReadingGroupError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -137,14 +125,29 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0F),
         appBar: AppBar(
-          title: const Text('Crear Grupo de Lectura',
-              style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Crear Grupo de Lectura',
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: const Color(0xFF1A1A2E),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
+            // Botón de home
+            IconButton(
+              icon: const Icon(
+                Icons.home,
+                color: Color(0xFF8B5CF6),
+                size: 28,
+              ),
+              onPressed: () {
+                context.goNamed('home');
+              },
+              tooltip: 'Ir al inicio',
+            ),
+            const SizedBox(width: 8),
+            // Botón de guardar/loading
             BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
               builder: (context, state) {
-                // El estado 'ReadingGroupActionInProgress' sigue siendo válido.
                 if (state is ReadingGroupActionInProgress) {
                   return const Padding(
                     padding: EdgeInsets.all(16.0),
@@ -161,9 +164,11 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 return IconButton(
                   icon: const Icon(Icons.check),
                   onPressed: _submitForm,
+                  tooltip: 'Crear grupo',
                 );
               },
             ),
+            const SizedBox(width: 8),
           ],
         ),
         body: Form(
@@ -173,7 +178,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ... (Todos los TextFormField y otros widgets se mantienen igual)
                 TextFormField(
                   controller: _nameController,
                   style: const TextStyle(color: Colors.white),
@@ -207,7 +211,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
                 Text(
                   'Libro del grupo',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -216,12 +219,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       ),
                 ),
                 const SizedBox(height: 8),
-
-                // MODIFICADO: _buildBookSelector ya no necesita un BlocBuilder.
                 _buildBookSelector(context),
-
                 const SizedBox(height: 24),
-                // ... (El resto del formulario se mantiene igual)
                 Text(
                   'Configuración del grupo',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -329,9 +328,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     );
   }
 
-  // MODIFICADO: Este widget ya no usa BlocBuilder.
   Widget _buildBookSelector(BuildContext context) {
-    // Si ya hay un libro seleccionado, lo mostramos.
     if (_selectedBook != null) {
       return Card(
         color: const Color(0xFF1A1A2E),
@@ -384,7 +381,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ],
                 ),
               ),
-              // El botón de cambiar ahora también navega a la búsqueda
               IconButton(
                 icon: const Icon(Icons.change_circle_outlined,
                     color: Colors.white),
@@ -397,7 +393,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       );
     }
 
-    // Si no hay libro, mostramos el botón para buscar uno.
     return OutlinedButton.icon(
       onPressed: _navigateToBookSearch,
       style: OutlinedButton.styleFrom(

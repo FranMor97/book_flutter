@@ -34,10 +34,13 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: colorScheme.primary,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.flutter_dash,
-                size: 80,
-                color: colorScheme.onPrimary,
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/logos.png',
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(height: 32),

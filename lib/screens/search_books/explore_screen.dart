@@ -32,6 +32,31 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0A0A0F),
+        elevation: 0,
+        title: const Text(
+          'Explorar Libros',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.home,
+              color: Color(0xFF8B5CF6),
+              size: 28,
+            ),
+            onPressed: () {
+              context.goNamed('home');
+            },
+            tooltip: 'Ir al inicio',
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [

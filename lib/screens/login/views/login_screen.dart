@@ -31,10 +31,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return BlocConsumer<LoginBloc, LoginState>(listener: (context, state) {
       if (state is LoginSuccess) {
-        // Navegamos a la página principal
         context.goNamed('home');
       } else if (state is LoginFailure) {
-        // Mostramos mensaje de error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(state.error),
@@ -54,19 +52,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo o avatar
+                    // Logo personalizado
                     Center(
                       child: Container(
-                        width: 100,
-                        height: 100,
+                        width: 120,
+                        height: 120,
                         decoration: BoxDecoration(
                           color: colorScheme.primaryContainer,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: colorScheme.shadow.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        child: Icon(
-                          Icons.person,
-                          size: 60,
-                          color: colorScheme.onPrimaryContainer,
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(10.0),
+                            child: Image.asset(
+                              'assets/images/logos.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -149,12 +158,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const Text('Recordarme'),
                         const Spacer(),
-                        TextButton(
-                          onPressed: () {
-                            // Implementar funcionalidad de recuperar contraseña
-                          },
-                          child: const Text('¿Olvidaste tu contraseña?'),
-                        ),
                       ],
                     ),
 

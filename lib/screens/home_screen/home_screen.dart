@@ -215,9 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Expanded(
               child: _buildStatCard(
-                icon: Icons.trending_up,
-                label: 'Páginas',
-                value: stats.totalPagesRead.toString(),
+                icon: Icons.border_color_outlined,
+                label: 'Todos los libros',
+                value: stats.totalBooks.toString(),
                 gradient: const [Color(0xFF8B5CF6), Color(0xFFEC4899)],
               ),
             ),
@@ -813,9 +813,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               CircleAvatar(
                                 radius: 30,
                                 backgroundColor: const Color(0xFF8B5CF6),
-                                backgroundImage: friend.avatar != null
+                                backgroundImage: friend.avatar != null &&
+                                        friend.avatar!.isNotEmpty
                                     ? NetworkImage(friend.avatar!)
-                                    : null,
+                                    : const AssetImage(
+                                        'assets/images/default_cover.png'),
                                 child: friend.avatar == null
                                     ? Text(
                                         friend.firstName.isNotEmpty
