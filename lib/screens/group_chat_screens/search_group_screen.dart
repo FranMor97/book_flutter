@@ -455,7 +455,7 @@ class _SearchGroupsScreenState extends State<SearchGroupsScreen> {
 
   void _showGroupDetailsDialog(BuildContext context, ReadingGroup group) {
     final book = group.book;
-
+    final bloc = context.read<ReadingGroupBloc>();
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -463,226 +463,230 @@ class _SearchGroupsScreenState extends State<SearchGroupsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Group name and privacy indicator
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      group.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: group.isPrivate
-                          ? Colors.red.withOpacity(0.2)
-                          : Colors.green.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      group.isPrivate ? 'Privado' : 'Público',
-                      style: TextStyle(
-                        color: group.isPrivate ? Colors.red : Colors.green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Creator info
-              if (group.creator != null) ...[
-                const Text(
-                  'Creado por:',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${group.creator!.firstName} ${group.creator!.lastName1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Description
-              if (group.description != null &&
-                  group.description!.isNotEmpty) ...[
-                const Text(
-                  'Descripción:',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  group.description!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Book information
-              if (book != null) ...[
-                const Text(
-                  'Libro:',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
+        child: BlocProvider.value(
+          value: bloc,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Group name and privacy indicator
                 Row(
                   children: [
-                    // Book cover if available
-                    if (book.coverImage != null && book.coverImage!.isNotEmpty)
-                      Container(
-                        width: 60,
-                        height: 90,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(
-                            image: NetworkImage(book.coverImage!),
-                            fit: BoxFit.cover,
-                          ),
+                    Expanded(
+                      child: Text(
+                        group.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-
-                    // Book info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            book.title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (book.authors.isNotEmpty)
-                            Text(
-                              book.authors.first,
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          if (book.pageCount != null)
-                            Text(
-                              '${book.pageCount} páginas',
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                        ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: group.isPrivate
+                            ? Colors.red.withOpacity(0.2)
+                            : Colors.green.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        group.isPrivate ? 'Privado' : 'Público',
+                        style: TextStyle(
+                          color: group.isPrivate ? Colors.red : Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-              ],
+                const SizedBox(height: 16),
 
-              // Reading goal if available
-              if (group.readingGoal != null) ...[
-                const Text(
-                  'Objetivo de lectura:',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 14,
+                // Creator info
+                if (group.creator != null) ...[
+                  const Text(
+                    'Creado por:',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                if (group.readingGoal!.pagesPerDay != null)
+                  const SizedBox(height: 4),
                   Text(
-                    '${group.readingGoal!.pagesPerDay} páginas por día',
+                    '${group.creator!.firstName} ${group.creator!.lastName1}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                     ),
                   ),
-                if (group.readingGoal!.targetFinishDate != null)
-                  Text(
-                    'Fecha objetivo: ${_formatDate(group.readingGoal!.targetFinishDate!)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                const SizedBox(height: 12),
-              ],
-
-              // Members count
-              Text(
-                'Miembros: ${group.members.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cerrar',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B5CF6),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-
-                      // Check if the group is private before joining
-                      if (group.isPrivate) {
-                        _showPrivateGroupDialog(context);
-                      } else {
-                        // Join the public group
-                        context.read<ReadingGroupBloc>().add(
-                              ReadingGroupJoin(groupId: group.id),
-                            );
-                      }
-                    },
-                    child: const Text('Unirse al grupo'),
-                  ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-            ],
+
+                // Description
+                if (group.description != null &&
+                    group.description!.isNotEmpty) ...[
+                  const Text(
+                    'Descripción:',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    group.description!,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Book information
+                if (book != null) ...[
+                  const Text(
+                    'Libro:',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      // Book cover if available
+                      if (book.coverImage != null &&
+                          book.coverImage!.isNotEmpty)
+                        Container(
+                          width: 60,
+                          height: 90,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: NetworkImage(book.coverImage!),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+
+                      // Book info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              book.title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (book.authors.isNotEmpty)
+                              Text(
+                                book.authors.first,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            if (book.pageCount != null)
+                              Text(
+                                '${book.pageCount} páginas',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Reading goal if available
+                if (group.readingGoal != null) ...[
+                  const Text(
+                    'Objetivo de lectura:',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  if (group.readingGoal!.pagesPerDay != null)
+                    Text(
+                      '${group.readingGoal!.pagesPerDay} páginas por día',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  if (group.readingGoal!.targetFinishDate != null)
+                    Text(
+                      'Fecha objetivo: ${_formatDate(group.readingGoal!.targetFinishDate!)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Members count
+                Text(
+                  'Miembros: ${group.members.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Action buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cerrar',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B5CF6),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+
+                        // Check if the group is private before joining
+                        if (group.isPrivate) {
+                          _showPrivateGroupDialog(context);
+                        } else {
+                          // Join the public group
+                          context.read<ReadingGroupBloc>().add(
+                                ReadingGroupJoin(groupId: group.id),
+                              );
+                        }
+                      },
+                      child: const Text('Unirse al grupo'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

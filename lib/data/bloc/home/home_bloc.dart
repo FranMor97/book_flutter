@@ -1,6 +1,8 @@
 // lib/data/bloc/home/home_bloc.dart
 import 'package:bloc/bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/repositories/user_repository.dart';
+import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:book_app_f/models/genre_stats.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
@@ -17,11 +19,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final IBookUserRepository bookUserRepository;
   final IBookRepository bookRepository;
   final IAuthRepository iAuthRepository;
+  final IUserRepository userRepository;
 
   HomeBloc({
     required this.bookUserRepository,
     required this.bookRepository,
     required this.iAuthRepository,
+    required this.userRepository,
   }) : super(HomeInitial()) {
     on<HomeLoadDashboard>(_onLoadDashboard);
     on<HomeRefreshDashboard>(_onRefreshDashboard);
@@ -36,6 +40,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     try {
       final user = await iAuthRepository.getCurrentUserId();
+      final userDTO = await userRepository.getUserWithStoredToken();
       // Cargar datos en paralelo para mejor performance
       final results = await Future.wait([
         _getCurrentlyReading(user!),
@@ -54,13 +59,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       final favoriteGenres = results[5] as List<GenreStat>;
 
       emit(HomeLoaded(
-        currentlyReading: currentlyReading,
-        stats: stats,
-        recentlyFinished: recentlyFinished,
-        recommendations: recommendations,
-        userId: user,
-        pagesReadThisWeek: pagesReadThisWeek,
-      ));
+          currentlyReading: currentlyReading,
+          stats: stats,
+          recentlyFinished: recentlyFinished,
+          recommendations: recommendations,
+          userId: user,
+          pagesReadThisWeek: pagesReadThisWeek,
+          user: userDTO));
     } catch (e) {
       emit(HomeError(message: e.toString()));
     }
@@ -100,17 +105,18 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         _getRecommendations(),
       ]);
 
+      final user = await userRepository.getUserWithStoredToken();
       final currentlyReading = results[0] as List<BookUserDto>;
       final stats = results[1] as UserReadingStats;
       final recentlyFinished = results[2] as List<BookUserDto>;
       final recommendations = results[3] as List<BookDto>;
 
       emit(HomeLoaded(
-        currentlyReading: currentlyReading,
-        stats: stats,
-        recentlyFinished: recentlyFinished,
-        recommendations: recommendations,
-      ));
+          currentlyReading: currentlyReading,
+          stats: stats,
+          recentlyFinished: recentlyFinished,
+          recommendations: recommendations,
+          user: user));
     } catch (e) {
       // Si hay error, mantener estado anterior o mostrar error
       if (currentState is HomeLoaded) {

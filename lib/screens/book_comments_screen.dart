@@ -280,7 +280,7 @@ class _BookCommentsScreenState extends State<BookCommentsScreen> {
             ),
 
             // Acciones (si es el comentario del usuario)
-            if (comment.isOwnComment) ...[
+            if (false) ...[
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

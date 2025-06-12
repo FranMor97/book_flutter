@@ -24,6 +24,7 @@ class HomeLoaded extends HomeState {
   final String? userId;
   final int pagesReadThisWeek;
   final List<GenreStat> favoriteGenres;
+  final UserDto? user;
 
   const HomeLoaded({
     required this.currentlyReading,
@@ -33,6 +34,7 @@ class HomeLoaded extends HomeState {
     this.pagesReadThisWeek = 0,
     this.userId,
     this.favoriteGenres = const [],
+    this.user,
   });
 
   @override
@@ -44,6 +46,7 @@ class HomeLoaded extends HomeState {
         userId,
         pagesReadThisWeek,
         favoriteGenres,
+        user,
       ];
 
   HomeLoaded copyWith({

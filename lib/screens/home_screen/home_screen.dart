@@ -7,6 +7,7 @@ import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/data/repositories/user_repository.dart';
 import 'package:book_app_f/injection.dart';
+import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -69,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
             }
 
             if (state is HomeLoaded) {
+              UserDto user = state.user!;
               return CustomScrollView(
                 slivers: [
                   // App Bar personalizado
@@ -99,10 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'THE READER',
                               style: TextStyle(
                                 color: Colors.white,
@@ -111,8 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             Text(
-                              '¡Hola, Lector!',
-                              style: TextStyle(
+                              '¡Hola,${user.appName}!',
+                              style: const TextStyle(
                                 color: Colors.grey,
                                 fontSize: 12,
                               ),
@@ -318,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'No tienes libros en tu biblioteca',
+                  'No estás leyendo ningún libro actualmente',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -345,10 +347,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         else
+          // SOLUCIÓN: Usar ListView.builder en lugar de PageView para mejor compatibilidad con Windows
           SizedBox(
             height: 200,
-            child: PageView.builder(
-              controller: PageController(viewportFraction: 0.7),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              physics:
+                  const BouncingScrollPhysics(), // Mejor experiencia de scroll
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               itemCount: books.length,
               itemBuilder: (context, index) {
                 final bookUser = books[index];
@@ -387,14 +393,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
                   },
                   child: Container(
+                    width: 140, // Ancho fijo para consistencia
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       color: const Color(0xFF1A1A2E),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // Portada del libro
                         Expanded(
                           child: ClipRRect(
                             borderRadius: const BorderRadius.vertical(
@@ -403,34 +418,102 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ? Image.network(
                                     bookData.coverImage!,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Image.asset(
-                                      'assets/images/default_cover.png',
-                                      fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                          colors: [
+                                            Color(0xFF8B5CF6),
+                                            Color(0xFFEC4899),
+                                          ],
+                                        ),
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.menu_book,
+                                          color: Colors.white,
+                                          size: 40,
+                                        ),
+                                      ),
                                     ),
                                   )
-                                : Image.asset(
-                                    'assets/images/default_cover.png',
-                                    fit: BoxFit.cover,
+                                : Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF8B5CF6),
+                                          Color(0xFFEC4899),
+                                        ],
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.menu_book,
+                                        color: Colors.white,
+                                        size: 40,
+                                      ),
+                                    ),
                                   ),
                           ),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Row(
+
+                        // Información del libro
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(statusIcon, color: statusColor, size: 14),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  bookData.title ?? 'Libro sin título',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
+                              // Estado del libro
+                              Row(
+                                children: [
+                                  Icon(statusIcon,
+                                      color: statusColor, size: 16),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      _getStatusText(bookUser.status),
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                ],
                               ),
+                              const SizedBox(height: 4),
+
+                              // Título del libro
+                              Text(
+                                bookData.title ?? 'Libro sin título',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+
+                              // Autor del libro
+                              if (bookData.authors.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    bookData.authors.first,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 10,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
@@ -443,6 +526,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
       ],
     );
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'to-read':
+        return 'Pendiente';
+      case 'reading':
+        return 'Leyendo';
+      case 'completed':
+        return 'Completado';
+      default:
+        return 'Desconocido';
+    }
   }
 
   Widget _buildReadingGroupsSection(BuildContext context) {

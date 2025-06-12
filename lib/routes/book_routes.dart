@@ -121,6 +121,7 @@ class AppRouter {
             bookUserRepository: getIt<IBookUserRepository>(),
             bookRepository: getIt<IBookRepository>(),
             iAuthRepository: getIt<IAuthRepository>(),
+            userRepository: getIt<IUserRepository>(),
           )..add(HomeLoadDashboard()),
           child: const HomeScreen(),
         ),
@@ -241,6 +242,7 @@ class AppRouter {
         builder: (context, state) {
           final groupId = state.pathParameters['id']!;
           return BlocProvider(
+            key: UniqueKey(),
             create: (context) => ReadingGroupBloc(
               readingGroupRepository: getIt<IReadingGroupRepository>(),
               userRepository: getIt<IUserRepository>(),

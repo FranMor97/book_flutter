@@ -85,7 +85,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ? _descriptionController.text
                   : null,
               bookId: _selectedBook!.id!,
-              isPrivate: _isPrivate,
+              isPrivate: false, //_isPrivate,
               readingGoal: readingGoal,
             ),
           );
@@ -221,26 +221,26 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 const SizedBox(height: 8),
                 _buildBookSelector(context),
                 const SizedBox(height: 24),
-                Text(
-                  'Configuración del grupo',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const Text('Grupo privado',
-                      style: TextStyle(color: Colors.white)),
-                  subtitle: const Text('Solo pueden unirse miembros invitados',
-                      style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  value: _isPrivate,
-                  onChanged: (value) => setState(() => _isPrivate = value),
-                  activeColor: const Color(0xFF8B5CF6),
-                  tileColor: const Color(0xFF1A1A2E),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
+                // Text(
+                //   'Configuración del grupo',
+                //   style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                //         color: Colors.white,
+                //         fontWeight: FontWeight.bold,
+                //       ),
+                // ),
+                // const SizedBox(height: 8),
+                // SwitchListTile(
+                //   title: const Text('Grupo privado',
+                //       style: TextStyle(color: Colors.white)),
+                //   subtitle: const Text('Solo pueden unirse miembros invitados',
+                //       style: TextStyle(color: Colors.grey, fontSize: 12)),
+                //   value: _isPrivate,
+                //   onChanged: (value) => setState(() => _isPrivate = value),
+                //   activeColor: const Color(0xFF8B5CF6),
+                //   tileColor: const Color(0xFF1A1A2E),
+                //   shape: RoundedRectangleBorder(
+                //       borderRadius: BorderRadius.circular(8)),
+                // ),
                 const SizedBox(height: 24),
                 Text(
                   'Objetivos de lectura (opcional)',

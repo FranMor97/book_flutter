@@ -362,7 +362,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         backgroundColor: const Color(0xFF1A1A2E),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => setState(() => _showProgressDialog = false),
+          onPressed: () => setState(() => {
+                _showProgressDialog = false,
+              }),
         ),
       ),
       body: Padding(
