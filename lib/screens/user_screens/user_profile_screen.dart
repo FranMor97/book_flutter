@@ -1,4 +1,7 @@
 // lib/screens/profile/user_profile_screen.dart
+import 'dart:io';
+
+import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -21,6 +24,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   final _lastName1Controller = TextEditingController();
   final _lastName2Controller = TextEditingController();
   final _mobilePhoneController = TextEditingController();
+  final _avatarController = TextEditingController();
 
   DateTime _birthDate = DateTime.now();
   final _dateFormat = DateFormat('dd/MM/yyyy');
@@ -31,7 +35,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<UserProfileBloc>().add(UserProfileLoad());
   }
 
   @override
@@ -41,11 +44,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _lastName1Controller.dispose();
     _lastName2Controller.dispose();
     _mobilePhoneController.dispose();
+    _avatarController.dispose();
     super.dispose();
   }
 
   void _populateFormFields(UserDto user) {
-    // Guardar referencia al usuario actual
     _currentUser = user;
 
     // Actualizar controladores sin setState
@@ -54,6 +57,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _lastName1Controller.text = user.lastName1;
     _lastName2Controller.text = user.lastName2 ?? '';
     _mobilePhoneController.text = user.mobilePhone;
+    _avatarController.text = user.avatar ?? '';
 
     // Normalizar la fecha para evitar problemas de zona horaria
     _birthDate = DateTime(user.birthDate.year, user.birthDate.month,
@@ -78,10 +82,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
 
     if (picked != null) {
-      // Asegurarnos de que se guarde exactamente la fecha seleccionada
-      // sin correcciones por zona horaria
       setState(() {
-        // Crear una nueva fecha usando año, mes y día para evitar problemas de zona horaria
         _birthDate = DateTime(picked.year, picked.month, picked.day, 12, 0, 0);
 
         print('Fecha seleccionada: ${_dateFormat.format(_birthDate)}');
@@ -90,16 +91,75 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Widget _buildAvatarPreview() {
+    final avatarUrl = _avatarController.text.trim();
+
+    if (avatarUrl.isEmpty) {
+      // Mostrar avatar por defecto con inicial
+      return CircleAvatar(
+        radius: 50,
+        backgroundColor: const Color(0xFF8B5CF6),
+        child: Text(
+          _currentUser?.firstName.isNotEmpty == true
+              ? _currentUser!.firstName.substring(0, 1).toUpperCase()
+              : '?',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 40,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    } else {
+      return CircleAvatar(
+        radius: 50,
+        backgroundColor: const Color(0xFF8B5CF6),
+        child: ClipOval(
+          child: Image.network(
+            avatarUrl,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Text(
+                _currentUser?.firstName.isNotEmpty == true
+                    ? _currentUser!.firstName.substring(0, 1).toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return const CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              );
+            },
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
       appBar: AppBar(
-        title: const Text('Mi Perfil', style: TextStyle(color: Colors.white)),
+        title: Platform.isAndroid
+            ? const Text('Mi Perfil', style: TextStyle(color: Colors.white))
+            : const Text('Perfil de Usuario',
+                style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF1A1A2E),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.pop(),
+          onPressed: () => Platform.isAndroid
+              ? context.pop()
+              : context.goNamed(AppRouter.adminUsers),
         ),
       ),
       body: BlocConsumer<UserProfileBloc, UserProfileState>(
@@ -119,7 +179,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             );
           } else if (state is UserProfileLoaded) {
-            // Llamar a _populateFormFields desde el listener
             _populateFormFields(state.user);
           }
         },
@@ -138,26 +197,49 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar o foto de perfil
+                    // Avatar o foto de perfil con preview
                     Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: const Color(0xFF8B5CF6),
-                        child: Text(
-                          state.user.firstName.isNotEmpty
-                              ? state.user.firstName
-                                  .substring(0, 1)
-                                  .toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      child: _buildAvatarPreview(),
                     ),
                     const SizedBox(height: 24),
+
+                    // Campo para URL del avatar
+                    TextFormField(
+                      controller: _avatarController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'URL del avatar (opcional)',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        prefixIcon: Icon(Icons.image, color: Colors.grey),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF8B5CF6)),
+                        ),
+                        filled: true,
+                        fillColor: Color(0xFF1A1A2E),
+                        helperText:
+                            'Ingrese la URL de una imagen para su avatar',
+                        helperStyle:
+                            TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      onChanged: (value) {
+                        // Actualizar preview cuando cambie el texto
+                        setState(() {});
+                      },
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          // Validación básica de URL
+                          final uri = Uri.tryParse(value);
+                          if (uri == null || !uri.hasScheme) {
+                            return 'Por favor ingrese una URL válida';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
                     // Email (no editable)
                     Container(
@@ -372,7 +454,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                         12,
                                         0,
                                         0),
-                                    avatar: _currentUser!.avatar,
+                                    avatar: _avatarController.text.isEmpty
+                                        ? null
+                                        : _avatarController.text,
                                   );
 
                                   // Disparar evento de actualización

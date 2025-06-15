@@ -86,6 +86,7 @@ class UserDto {
     required String idNumber,
     required String mobilePhone,
     required DateTime birthDate,
+    required String role,
     String? avatar,
   }) {
     return UserDto(
@@ -99,6 +100,7 @@ class UserDto {
       mobilePhone: mobilePhone,
       birthDate: birthDate,
       avatar: avatar,
+      role: role,
       registrationDate: DateTime.now(),
     );
   }
@@ -125,13 +127,11 @@ class UserDto {
     final json = toJson(); // Obtiene el JSON normal
 
     // Eliminar campos que no se deben actualizar
-    json.remove('_id');
     json.remove('email');
     json.remove('password');
     json.remove('role');
     json.remove('idNumber');
     json.remove('registrationDate');
-
     return json;
   }
 

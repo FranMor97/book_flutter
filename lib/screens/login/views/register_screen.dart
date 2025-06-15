@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -30,14 +32,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
+  bool _role = false;
 
   final _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
     super.initState();
-
-    // Añadir listeners a los controladores para validación en tiempo real
     _appNameController.addListener(_updateFormState);
     _firstNameController.addListener(_updateFormState);
     _emailController.addListener(_updateFormState);
@@ -49,7 +50,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _updateFormState() {
-    // Emitir evento RegisterFormChanged para validación en tiempo real
     if (context.mounted) {
       context.read<RegisterBloc>().add(
             RegisterFormChanged(
@@ -433,26 +433,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Términos y condiciones
-                    Row(
+                    Column(
                       children: [
-                        Checkbox(
-                          value: _acceptTerms,
-                          onChanged: (value) {
-                            setState(() {
-                              _acceptTerms = value ?? false;
-                              _updateFormState(); // Actualizar cuando cambia la aceptación de términos
-                            });
-                          },
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _acceptTerms,
+                              onChanged: (value) {
+                                setState(() {
+                                  _acceptTerms = value ?? false;
+                                  _updateFormState();
+                                });
+                              },
+                            ),
+                            Expanded(
+                              child: Text(
+                                'He leído y acepto los términos y condiciones y la política de privacidad',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
                         ),
-                        Expanded(
-                          child: Text(
-                            'He leído y acepto los términos y condiciones y la política de privacidad',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                        if (Platform.isWindows)
+                          Row(
+                            children: [
+                              Checkbox(
+                                  value: _role,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _role = value ?? false;
+                                    });
+                                  }),
+                              Expanded(
+                                child: Text(
+                                  'Administrador',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
                       ],
                     ),
+
                     const SizedBox(height: 16),
 
                     // Botón de registro
@@ -477,6 +499,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         mobilePhone:
                                             _mobilePhoneController.text,
                                         birthDate: _birthDate,
+                                        role: _role ? 'admin' : 'client',
                                       );
 
                                       context.read<RegisterBloc>().add(

@@ -37,9 +37,7 @@ abstract class AppModule {
           return handler.next(options);
         },
         onError: (error, handler) {
-          // Manejar errores de autenticación
           if (error.response?.statusCode == 401) {
-            // Token expirado o inválido
             prefs.remove('auth_token');
           }
           return handler.next(error);
@@ -53,13 +51,15 @@ abstract class AppModule {
   /// Proporciona la URL base para la API en producción
   @Named("apiBaseUrl")
   @prod
-  String get apiBaseUrl => 'https://book-server-jc53.onrender.com/api';
+  String get apiBaseUrl => 'http://localhost:300/api';
+
+  //'https://book-server-jc53.onrender.com/api'
   //192.168.213.173
   //192.168.1.14
   /// URL base para desarrollo
   @Named("apiBaseUrl")
   @dev
-  String get devApiBaseUrl => 'https://book-server-jc53.onrender.com/api';
+  String get devApiBaseUrl => 'http://localhost:3000/api';
 
   /// URL base para pruebas
   @Named("apiBaseUrl")

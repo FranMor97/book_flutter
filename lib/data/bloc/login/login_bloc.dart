@@ -28,7 +28,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         password: event.password,
       );
 
-      // Llamar al repositorio para iniciar sesión
       final user = await userRepository.login(loginDto);
 
       emit(LoginSuccess(user: user));

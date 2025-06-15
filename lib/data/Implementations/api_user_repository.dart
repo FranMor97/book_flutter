@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:book_app_f/data/repositories/user_repository.dart';
 import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:dio/dio.dart';
@@ -10,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiUserRepository implements IUserRepository {
   final Dio _dio;
   final String _baseUrl;
+  final SharedPreferences prefs;
   final CacheManager _cacheManager;
   static const String _tokenKey = 'auth_token';
 
@@ -17,6 +19,7 @@ class ApiUserRepository implements IUserRepository {
     required Dio dio,
     @Named("apiBaseUrl") required String baseUrl,
     required CacheManager cacheManager,
+    required this.prefs,
   })  : _dio = dio,
         _baseUrl = baseUrl,
         _cacheManager = cacheManager;
@@ -66,8 +69,10 @@ class ApiUserRepository implements IUserRepository {
   @override
   Future<UserDto> login(UserDto loginDto) async {
     try {
-      // Realizar petición HTTP usando Dio
+      await prefs.remove('auth_token');
+      await _cacheManager.clearUser();
 
+      // Realizar petición HTTP usando Dio
       final baseUrl = '$_baseUrl/auth/login';
 
       final response = await _dio.post(
@@ -78,7 +83,7 @@ class ApiUserRepository implements IUserRepository {
         },
       );
 
-      // Extraer token de la respuesta
+      // Extraer datos de la respuesta
       final responseData = response.data;
 
       if (responseData['error'] != null) {
@@ -86,20 +91,23 @@ class ApiUserRepository implements IUserRepository {
       }
 
       final token = responseData['data']['token'];
+      final userData = responseData['data']['user'];
 
       if (token == null) {
         throw Exception('No se recibió un token válido');
       }
 
+      if (userData == null) {
+        throw Exception('No se recibieron datos del usuario');
+      }
+
       // Guardar token
       await _saveToken(token);
+      await prefs.setString('auth_token', token);
+      await _cacheManager.saveUser(UserDto.fromJson(userData));
 
-      // Obtener datos del usuario
-      final user = await getUserWithStoredToken();
-
-      if (user == null) {
-        throw Exception('No se pudo obtener la información del usuario');
-      }
+      // Convertir los datos del usuario a UserDto
+      final user = UserDto.fromJson(userData);
 
       return user;
     } on DioException catch (e) {
@@ -130,12 +138,7 @@ class ApiUserRepository implements IUserRepository {
     try {
       final token = await _getToken();
 
-      if (token != null) {
-        // Opcional: Notificar al backend sobre cierre de sesión
-        // await _dio.post('$_baseUrl/auth/logout',
-        //   options: Options(headers: {'Authorization': 'Bearer $token'}),
-        // );
-      }
+      if (token != null) {}
     } catch (e) {
       // Ignoramos errores del backend durante logout
     } finally {
@@ -235,13 +238,11 @@ class ApiUserRepository implements IUserRepository {
       final UserDto userData = responseData['data'] != null
           ? UserDto.fromJson(responseData['data'])
           : UserDto.fromJson(responseData);
-
-      // Guardar en caché
-      await _cacheManager.saveUser(userData);
-
+      if (Platform.isAndroid && userData.role == 'client') {
+        await _cacheManager.saveUser(userData);
+      }
       return userData;
     } on DioException catch (e) {
-      // Manejo personalizado de errores de la API
       if (e.response != null) {
         final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
         throw Exception(errorMessage);
@@ -252,6 +253,71 @@ class ApiUserRepository implements IUserRepository {
     } catch (e) {
       // Otros errores inesperados
       throw Exception('Error al actualizar perfil: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<UserDto>> getAllUsers({int page = 1, int limit = 20}) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('No se encontró un token de autenticación');
+      }
+
+      final response = await _dio.get(
+        '$_baseUrl/auth/getAll',
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+        },
+        options: Options(
+          headers: {'auth-token': token},
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final List<dynamic> usersData = response.data;
+        return usersData.map((userData) => UserDto.fromJson(userData)).toList();
+      } else {
+        throw Exception('No se pudieron obtener los usuarios');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+        throw Exception(errorMessage);
+      }
+      throw Exception('Error de conexión: ${e.message}');
+    } catch (e) {
+      throw Exception('Error al obtener usuarios: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<void> deleteUser(String userId) async {
+    try {
+      final token = await _getToken();
+      if (token == null) {
+        throw Exception('No se encontró un token de autenticación');
+      }
+
+      final response = await _dio.delete(
+        '$_baseUrl/auth/user/$userId',
+        options: Options(
+          headers: {'auth-token': token},
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('No se pudo eliminar el usuario');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['error'] ?? 'Error desconocido';
+        throw Exception(errorMessage);
+      }
+      throw Exception('Error de conexión: ${e.message}');
+    } catch (e) {
+      throw Exception('Error al eliminar usuario: ${e.toString()}');
     }
   }
 

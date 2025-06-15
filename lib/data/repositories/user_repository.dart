@@ -19,4 +19,8 @@ abstract class IUserRepository {
   Future<UserDto> updateProfile(UserDto userDto);
 
   Future<UserDto> getUserById(String userId);
+
+  Future<List<UserDto>> getAllUsers({int page = 1, int limit = 20});
+
+  Future<void> deleteUser(String userId);
 }

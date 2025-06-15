@@ -12,8 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'admin@123.com');
-  final _passwordController = TextEditingController(text: 'admin123');
+  final _emailController = TextEditingController(text: 'soyAdmin@soyAdmin.com');
+  final _passwordController = TextEditingController(text: 'soyAdmin10');
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _rememberMe = true;
@@ -31,14 +31,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return BlocConsumer<LoginBloc, LoginState>(listener: (context, state) {
       if (state is LoginSuccess) {
-        context.goNamed('home');
+        if (state.user.role == 'client') {
+          context.goNamed('home');
+        } else {
+          context.goNamed('admin-home');
+        }
       } else if (state is LoginFailure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(state.error),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(state.error),
+          backgroundColor: Colors.red,
+        ));
       }
     }, builder: (context, state) {
       return Scaffold(
@@ -210,9 +212,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('Usuario: admin@example.com'),
+                                Text('Usuario: soyAdmin@soyAdmin.com'),
                                 SizedBox(width: 16),
-                                Text('Contraseña: admin123'),
+                                Text('Contraseña: soyAdmin10'),
                               ],
                             ),
                           ],

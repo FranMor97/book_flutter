@@ -16,6 +16,7 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
       : super(UserProfileInitial()) {
     on<UserProfileLoad>(_onUserProfileLoad);
     on<UserProfileUpdate>(_onUserProfileUpdate);
+    on<UserProfileLoadWithId>(_onUserProfileLoadWithId);
   }
 
   Future<void> _onUserProfileLoad(
@@ -37,6 +38,25 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
     }
   }
 
+  Future<void> _onUserProfileLoadWithId(
+    UserProfileLoadWithId event,
+    Emitter<UserProfileState> emit,
+  ) async {
+    emit(UserProfileLoading());
+
+    try {
+      final user = await userRepository.getUserById(event.userId);
+      if (user != null) {
+        emit(UserProfileLoaded(user: user));
+      } else {
+        emit(const UserProfileError(
+            message: 'No se pudo cargar el perfil del usuario'));
+      }
+    } catch (e) {
+      emit(UserProfileError(message: e.toString()));
+    }
+  }
+
   Future<void> _onUserProfileUpdate(
     UserProfileUpdate event,
     Emitter<UserProfileState> emit,
@@ -47,7 +67,6 @@ class UserProfileBloc extends Bloc<UserProfileEvent, UserProfileState> {
       final updatedUser = await userRepository.updateProfile(event.userDto);
       emit(UserProfileUpdateSuccess(user: updatedUser));
 
-      // Emitir el estado cargado con los datos actualizados
       emit(UserProfileLoaded(user: updatedUser));
     } catch (e) {
       emit(UserProfileError(message: e.toString()));

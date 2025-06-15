@@ -27,6 +27,8 @@ import 'data/repositories/book_user_repository.dart' as _i914;
 import 'data/repositories/friendship_repository.dart' as _i233;
 import 'data/repositories/reading_group_repository.dart' as _i228;
 import 'data/repositories/user_repository.dart' as _i443;
+import 'data/services/reading_group_socket_service.dart' as _i768;
+import 'data/services/socket_service.dart' as _i582;
 import 'injection/app_module.dart' as _i984;
 
 const String _dev = 'dev';
@@ -49,6 +51,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.sharedPreferences,
       preResolve: true,
     );
+    gh.lazySingleton<_i582.SocketService>(() => appModule.socketService());
     gh.lazySingleton<_i361.Dio>(
         () => appModule.dio(gh<_i460.SharedPreferences>()));
     gh.lazySingleton<_i654.CacheStore>(
@@ -95,6 +98,8 @@ extension GetItInjectableX on _i174.GetIt {
           bookUserRepository: gh<_i914.IBookUserRepository>(),
           authRepository: gh<_i593.IAuthRepository>(),
         ));
+    gh.lazySingleton<_i768.ReadingGroupSocketService>(
+        () => appModule.readingGroupSocketService(gh<_i582.SocketService>()));
     gh.factory<String>(
       () => appModule.testApiBaseUrl,
       instanceName: 'apiBaseUrl',
@@ -122,6 +127,7 @@ extension GetItInjectableX on _i174.GetIt {
         dio: gh<_i361.Dio>(),
         baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
         cacheManager: gh<_i654.CacheManager>(),
+        prefs: gh<_i460.SharedPreferences>(),
       ),
       registerFor: {
         _dev,

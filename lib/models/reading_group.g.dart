@@ -11,6 +11,9 @@ GroupMember _$GroupMemberFromJson(Map<String, dynamic> json) => GroupMember(
       role: json['role'] as String,
       currentPage: (json['currentPage'] as num).toInt(),
       joinedAt: GroupMember._dateTimeFromJson(json['joinedAt'] as String),
+      user: json['user'] == null
+          ? null
+          : User.fromJson(json['user'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$GroupMemberToJson(GroupMember instance) =>
@@ -19,6 +22,7 @@ Map<String, dynamic> _$GroupMemberToJson(GroupMember instance) =>
       'role': instance.role,
       'currentPage': instance.currentPage,
       'joinedAt': GroupMember._dateTimeToJson(instance.joinedAt),
+      'user': instance.user,
     };
 
 ReadingGoal _$ReadingGoalFromJson(Map<String, dynamic> json) => ReadingGoal(
@@ -35,7 +39,7 @@ Map<String, dynamic> _$ReadingGoalToJson(ReadingGoal instance) =>
     };
 
 ReadingGroup _$ReadingGroupFromJson(Map<String, dynamic> json) => ReadingGroup(
-      id: json['_id'] as String,
+      id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
       bookId: json['bookId'] as String,
@@ -49,11 +53,17 @@ ReadingGroup _$ReadingGroupFromJson(Map<String, dynamic> json) => ReadingGroup(
           : ReadingGoal.fromJson(json['readingGoal'] as Map<String, dynamic>?),
       createdAt: ReadingGroup._dateTimeFromJson(json['createdAt'] as String),
       updatedAt: ReadingGroup._dateTimeFromJson(json['updatedAt'] as String),
+      book: json['book'] == null
+          ? null
+          : BookDto.fromJson(json['book'] as Map<String, dynamic>),
+      creator: json['creator'] == null
+          ? null
+          : UserDto.fromJson(json['creator'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$ReadingGroupToJson(ReadingGroup instance) =>
     <String, dynamic>{
-      '_id': instance.id,
+      'id': instance.id,
       'name': instance.name,
       'description': instance.description,
       'bookId': instance.bookId,
@@ -63,4 +73,6 @@ Map<String, dynamic> _$ReadingGroupToJson(ReadingGroup instance) =>
       'readingGoal': instance.readingGoal,
       'createdAt': ReadingGroup._dateTimeToJson(instance.createdAt),
       'updatedAt': ReadingGroup._dateTimeToJson(instance.updatedAt),
+      'book': instance.book,
+      'creator': instance.creator,
     };
