@@ -1,4 +1,7 @@
 // lib/screens/search_books/explore_screen.dart
+import 'dart:io';
+
+import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -50,7 +53,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
               size: 28,
             ),
             onPressed: () {
-              context.goNamed('home');
+              Platform.isWindows
+                  ? context.goNamed(AppRouter.adminHome)
+                  : context.goNamed(AppRouter.home);
             },
             tooltip: 'Ir al inicio',
           ),

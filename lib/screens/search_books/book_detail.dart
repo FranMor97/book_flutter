@@ -1,4 +1,7 @@
 // lib/screens/explore/book_detail_screen.dart
+import 'dart:io';
+
+import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -125,7 +128,9 @@ class BookDetailScreen extends StatelessWidget {
               child: IconButton(
                 icon: const Icon(Icons.home, color: Colors.white),
                 onPressed: () {
-                  context.goNamed('home');
+                  Platform.isAndroid
+                      ? context.goNamed('home')
+                      : context.goNamed(AppRouter.adminHome);
                 },
               ),
             ),
@@ -382,21 +387,34 @@ class BookDetailScreen extends StatelessWidget {
     // Si el libro no está en la biblioteca
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
-        onPressed: () {
-          context.read<BookDetailBloc>().add(
-                BookDetailAddToLibrary(
-                  bookId: book.id!,
-                  status: 'to-read',
-                ),
-              );
-        },
-        style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF8B5CF6),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-        child: const Text('Añadir a mi biblioteca'),
-      ),
+      child: Platform.isAndroid
+          ? ElevatedButton(
+              onPressed: () {
+                context.read<BookDetailBloc>().add(
+                      BookDetailAddToLibrary(
+                        bookId: book.id!,
+                        status: 'to-read',
+                      ),
+                    );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Añadir a mi biblioteca'),
+            )
+          : // Para escritorio, usar FilledButton
+          FilledButton(
+              onPressed: () {
+                context.pushNamed(AppRouter.bookEdit,
+                    pathParameters: {'id': book.id!});
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Modificar Libro'),
+            ),
     );
   }
 
@@ -474,7 +492,6 @@ class BookDetailScreen extends StatelessWidget {
                   return;
                 }
 
-                // Validar que no sea menor al progreso actual
                 if (page < userBook.currentPage) {
                   setState(() {
                     errorText =
@@ -483,7 +500,6 @@ class BookDetailScreen extends StatelessWidget {
                   return;
                 }
 
-                // Validar que no exceda el total de páginas
                 if (book.pageCount != null && page > book.pageCount!) {
                   setState(() {
                     errorText =

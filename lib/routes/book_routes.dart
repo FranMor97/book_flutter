@@ -3,6 +3,7 @@ import 'package:book_app_f/data/bloc/admin_home_bloc/admin_home_bloc.dart';
 import 'package:book_app_f/data/bloc/admin_user_bloc/admin_users_bloc.dart';
 import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
+import 'package:book_app_f/data/bloc/edito_book/edit_book_bloc.dart';
 import 'package:book_app_f/data/bloc/friendship/friendship_bloc.dart';
 import 'package:book_app_f/data/bloc/home/home_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
@@ -11,6 +12,7 @@ import 'package:book_app_f/data/bloc/user_profile/user_profile_bloc.dart';
 import 'package:book_app_f/data/repositories/friendship_repository.dart';
 import 'package:book_app_f/data/repositories/reading_group_repository.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
+import 'package:book_app_f/screens/admin_screens/admin_books/edit_book_screen.dart';
 import 'package:book_app_f/screens/admin_screens/admin_home-screen.dart';
 import 'package:book_app_f/screens/admin_screens/admin_users/admin_users_screen.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
@@ -68,8 +70,8 @@ class AppRouter {
   static const String selectBookScreen = 'select-book-screen';
   static const String adminHome = 'admin-home';
   static const String adminUsers = 'admin-users';
-  static const String adminUserProfile =
-      'admin-user-profile'; // Nueva ruta para el perfil de usuario en admin
+  static const String adminUserProfile = 'admin-user-profile';
+  static const String bookEdit = 'book-edit';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -91,6 +93,7 @@ class AppRouter {
   static const String adminHomePath = '/admin-home';
   static const String adminUsersPath = '/admin-users';
   static const String adminUserProfilePath = '/admin-user-profile/:id';
+  static const String bookEditPath = '/book-edit/:id';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -155,6 +158,7 @@ class AppRouter {
         builder: (context, state) {
           final bookId = state.pathParameters['id']!;
           return BlocProvider(
+            key: UniqueKey(),
             create: (context) =>
                 getIt<BookDetailBloc>()..add(BookDetailLoad(bookId: bookId)),
             child: BookDetailScreen(bookId: bookId),
@@ -204,6 +208,22 @@ class AppRouter {
                 userRepository: getIt<IUserRepository>(),
               )..add(UserProfileLoadWithId(userId: userId)),
               child: const UserProfileScreen(),
+            );
+          }),
+
+      GoRoute(
+          name: bookEdit,
+          path: bookEditPath,
+          builder: (context, state) {
+            final bookId = state.pathParameters['id']!;
+            return BlocProvider(
+              key: UniqueKey(),
+              create: (context) => EditBookBloc(
+                bookRepository: getIt<IBookRepository>(),
+              )..add(EditBookLoad(bookId: bookId)),
+              child: EditBookScreen(
+                bookId: bookId,
+              ),
             );
           }),
 
