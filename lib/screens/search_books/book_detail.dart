@@ -137,14 +137,12 @@ class BookDetailScreen extends StatelessWidget {
           ],
         ),
 
-        // Contenido del libro
         SliverToBoxAdapter(
           child: Container(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Título y autor
                 Text(
                   book.title,
                   style: const TextStyle(

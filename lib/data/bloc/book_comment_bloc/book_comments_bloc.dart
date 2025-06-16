@@ -23,6 +23,26 @@ class BookCommentsBloc extends Bloc<BookCommentsEvent, BookCommentsState> {
   }) : super(BookCommentsInitial()) {
     on<BookCommentsLoad>(_onBookCommentsLoad);
     on<BookCommentsAddComment>(_onBookCommentsAddComment);
+    on<BookCommentsDeleteComment>(_onBookCommentsDeleteComment);
+  }
+
+  Future<void> _onBookCommentsDeleteComment(
+    BookCommentsDeleteComment event,
+    Emitter<BookCommentsState> emit,
+  ) async {
+    final currentState = state;
+
+    if (currentState is! BookCommentsLoaded) return;
+    emit(BookCommentsSubmitting());
+
+    try {
+      await bookRepository.deleteBookComment(event.commentId);
+
+      // Recargar comentarios
+      add(BookCommentsLoad(bookId: event.commentId));
+    } catch (e) {
+      emit(BookCommentsError(message: e.toString()));
+    }
   }
 
   Future<void> _onBookCommentsLoad(

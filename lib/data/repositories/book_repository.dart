@@ -56,17 +56,15 @@ abstract class IBookRepository {
   /// Crea un nuevo libro (solo para administradores)
   Future<BookDto> createBook(BookDto bookDto);
 
-  /// Actualiza un libro existente (solo para administradores)
   Future<BookDto> updateBook(String bookId, BookDto bookDto);
 
-  /// Elimina un libro (solo para administradores)
   Future<void> deleteBook(String bookId);
 
-  /// Obtiene géneros disponibles
   Future<List<String>> getAvailableGenres();
 
-  /// Obtiene autores disponibles
   Future<List<String>> getAvailableAuthors();
+
+  Future<void> deleteBookComment(String commentId);
 
   // En la interfaz IBookRepository
   Future<List<BookComment>> getBookComments(String bookId, String userId);

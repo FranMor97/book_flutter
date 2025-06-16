@@ -31,3 +31,14 @@ class BookCommentsLoad extends BookCommentsEvent {
   @override
   List<Object> get props => [bookId];
 }
+
+class BookCommentsDeleteComment extends BookCommentsEvent {
+  final String commentId;
+
+  const BookCommentsDeleteComment({
+    required this.commentId,
+  });
+
+  @override
+  List<Object> get props => [commentId];
+}

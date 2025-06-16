@@ -136,7 +136,6 @@ class BookDto {
     );
   }
 
-  // Factory para crear un nuevo libro
   factory BookDto.forCreation({
     required String title,
     required List<String> authors,
@@ -167,7 +166,6 @@ class BookDto {
     );
   }
 
-  // Método para convertir a JSON para crear un nuevo libro
   Map<String, dynamic> toJsonForCreation() {
     final json = toJson();
     json.remove('_id'); // Elimina el ID ya que MongoDB lo generará

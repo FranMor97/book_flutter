@@ -55,6 +55,33 @@ class DioBookRepository implements IBookRepository {
   }
 
   @override
+  Future<void> deleteBookComment(String commentId) async {
+    try {
+      print('📤 SOLICITANDO ELIMINAR COMENTARIO CON ID: $commentId');
+
+      // La ruta para eliminar comentarios está definida en el servidor como /books/comments/:commentId
+      final response =
+          await _dio.delete('$_baseUrl$_booksEndpoint/comments/$commentId');
+
+      print('📥 RESPUESTA RECIBIDA [STATUS: ${response.statusCode}]');
+
+      if (response.statusCode != 200) {
+        throw Exception(
+            'Error al eliminar comentario: código ${response.statusCode}');
+      }
+
+      print('✅ COMENTARIO ELIMINADO CORRECTAMENTE');
+    } on DioException catch (e) {
+      print('📥 ERROR DIO AL ELIMINAR COMENTARIO: ${e.message}');
+      print('📥 RESPONSE: ${e.response?.data}');
+      throw _handleDioException(e);
+    } catch (e) {
+      print('📥 ERROR GENERAL AL ELIMINAR COMENTARIO: $e');
+      throw Exception('Error al eliminar comentario: ${e.toString()}');
+    }
+  }
+
+  @override
   Future<BookDto?> getBookById(String bookId) async {
     try {
       print('📤 SOLICITANDO LIBRO POR ID: $bookId');
@@ -248,8 +275,8 @@ class DioBookRepository implements IBookRepository {
     }
   }
 
-// lib/data/Implementations/dio_book_repository.dart
-// lib/data/Implementations/dio_book_repository.dart
+  // lib/data/Implementations/dio_book_repository.dart
+  // lib/data/Implementations/dio_book_repository.dart
   @override
   Future<List<BookComment>> getBookComments(
       String bookId, String userId) async {

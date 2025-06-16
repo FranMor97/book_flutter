@@ -1,6 +1,7 @@
 // lib/routes/book_routes.dart
 import 'package:book_app_f/data/bloc/admin_home_bloc/admin_home_bloc.dart';
 import 'package:book_app_f/data/bloc/admin_user_bloc/admin_users_bloc.dart';
+import 'package:book_app_f/data/bloc/book_comment_bloc/book_comments_bloc.dart';
 import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
 import 'package:book_app_f/data/bloc/edito_book/edit_book_bloc.dart';
@@ -72,6 +73,7 @@ class AppRouter {
   static const String adminUsers = 'admin-users';
   static const String adminUserProfile = 'admin-user-profile';
   static const String bookEdit = 'book-edit';
+  static const String adminBooks = 'book-comments';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -94,6 +96,7 @@ class AppRouter {
   static const String adminUsersPath = '/admin-users';
   static const String adminUserProfilePath = '/admin-user-profile/:id';
   static const String bookEditPath = '/book-edit/:id';
+  static const String adminBooksPath = '/book-comments/:id';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -165,6 +168,22 @@ class AppRouter {
           );
         },
       ),
+      GoRoute(
+        name: bookComments,
+        path: bookCommentsPath,
+        builder: (context, state) {
+          final bookId = state.pathParameters['id']!;
+          return BlocProvider(
+            key: UniqueKey(),
+            create: (context) => BookCommentsBloc(
+              bookRepository: getIt<IBookRepository>(),
+              bookUserRepository: getIt<IBookUserRepository>(),
+              authRepository: getIt<IAuthRepository>(),
+            )..add(BookCommentsLoad(bookId: bookId)),
+            child: BookCommentsScreen(bookId: bookId),
+          );
+        },
+      ),
       // Ruta para la biblioteca del usuario
       GoRoute(
         name: userLibrary,
@@ -177,14 +196,6 @@ class AppRouter {
           )..add(UserLibraryLoadBooks()),
           child: const UserLibraryScreen(),
         ),
-      ),
-      GoRoute(
-        name: bookComments,
-        path: bookCommentsPath,
-        builder: (context, state) {
-          final bookId = state.pathParameters['id']!;
-          return BookCommentsScreen(bookId: bookId);
-        },
       ),
       GoRoute(
         name: userProfile,
