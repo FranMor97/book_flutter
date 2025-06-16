@@ -52,10 +52,8 @@ class BookCommentsBloc extends Bloc<BookCommentsEvent, BookCommentsState> {
     emit(BookCommentsLoading());
 
     try {
-      // Obtener el usuario actual para saber qué comentarios son suyos
       final userId = await authRepository.getCurrentUserId();
 
-      // Obtener comentarios del libro (esta función habría que implementarla)
       final comments = await bookRepository.getBookComments(
         event.bookId,
         userId!,

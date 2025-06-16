@@ -7,6 +7,8 @@ import 'package:book_app_f/models/user_with_friendship.dart';
 import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../models/dtos/user_dto.dart';
+
 @LazySingleton(
     as: IFriendshipRepository, env: [Environment.dev, Environment.prod])
 class DioFriendshipRepository implements IFriendshipRepository {

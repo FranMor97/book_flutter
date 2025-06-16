@@ -172,7 +172,7 @@ class ReadingGroup {
 
     // Manejar bookId (podría ser un string directo o venir de un objeto)
     String bookIdValue;
-    if (json['bookId'] is Map) {
+    if (json ['bookId'] is Map) {
       bookIdValue = json['bookId']['id'] ?? json['bookId']['_id'];
     } else {
       bookIdValue = json['bookId'];

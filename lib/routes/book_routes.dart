@@ -4,6 +4,7 @@ import 'package:book_app_f/data/bloc/admin_user_bloc/admin_users_bloc.dart';
 import 'package:book_app_f/data/bloc/book_comment_bloc/book_comments_bloc.dart';
 import 'package:book_app_f/data/bloc/book_detail/book_detail_bloc.dart';
 import 'package:book_app_f/data/bloc/book_library/book_library_bloc.dart';
+import 'package:book_app_f/data/bloc/create_book/create_book_bloc.dart';
 import 'package:book_app_f/data/bloc/edito_book/edit_book_bloc.dart';
 import 'package:book_app_f/data/bloc/friendship/friendship_bloc.dart';
 import 'package:book_app_f/data/bloc/home/home_bloc.dart';
@@ -40,6 +41,7 @@ import '../data/repositories/book_repository.dart';
 import '../data/repositories/user_repository.dart';
 import '../data/repositories/book_user_repository.dart';
 import '../injection.dart';
+import '../screens/admin_screens/admin_books/create_book.dart';
 import '../screens/search_books/book_detail.dart';
 import '../screens/search_books/explore_screen.dart';
 
@@ -74,6 +76,7 @@ class AppRouter {
   static const String adminUserProfile = 'admin-user-profile';
   static const String bookEdit = 'book-edit';
   static const String adminBooks = 'book-comments';
+  static const String createBook = 'create-book';
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -97,6 +100,7 @@ class AppRouter {
   static const String adminUserProfilePath = '/admin-user-profile/:id';
   static const String bookEditPath = '/book-edit/:id';
   static const String adminBooksPath = '/book-comments/:id';
+  static const String createBookPath = '/create-book';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -246,6 +250,17 @@ class AppRouter {
               BookLibraryBloc(bookRepository: getIt<IBookRepository>())
                 ..add(BookLibraryLoadBooks()),
           child: const SelectBookScreen(),
+        ),
+      ),
+
+      GoRoute(
+        name: createBook,
+        path: createBookPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => CreateBookBloc(
+            bookRepository: getIt<IBookRepository>(),
+          ),
+          child: const CreateBookScreen(), // Esta pantalla aún no existe
         ),
       ),
 

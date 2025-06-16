@@ -46,6 +46,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ),
         ),
         actions: [
+          if (Platform.isWindows)
+            IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: 'Crear nuevo libro',
+              onPressed: () {
+                context.pushNamed('create-book'); // Utilizaremos esta ruta
+              },
+            ),
           IconButton(
             icon: const Icon(
               Icons.home,

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -12,8 +14,10 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController(text: 'soyAdmin@soyAdmin.com');
-  final _passwordController = TextEditingController(text: 'soyAdmin10');
+  final _emailController = TextEditingController(
+      text: Platform.isWindows ? 'soyAdmin@soyAdmin.com' : 'fran10@fran.com');
+  final _passwordController =
+      TextEditingController(text: Platform.isWindows ? 'soyAdmin10' : 'fran10');
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _rememberMe = true;
