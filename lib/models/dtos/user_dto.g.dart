@@ -8,17 +8,20 @@ part of 'user_dto.dart';
 
 UserDto _$UserDtoFromJson(Map<String, dynamic> json) => UserDto(
       id: json['_id'] as String?,
-      appName: json['appName'] as String,
-      firstName: json['firstName'] as String,
-      email: json['email'] as String,
+      appName: json['appName'] as String? ?? '',
+      firstName: json['firstName'] as String? ?? '',
+      email: json['email'] as String? ?? '',
       password: json['password'] as String?,
-      lastName1: json['lastName1'] as String,
+      lastName1: json['lastName1'] as String? ?? '',
       lastName2: json['lastName2'] as String?,
-      idNumber: json['idNumber'] as String,
-      mobilePhone: json['mobilePhone'] as String,
-      birthDate: UserDto._dateTimeFromJson(json['birthDate'] as String),
-      registrationDate:
-          UserDto._dateTimeFromJson(json['registrationDate'] as String),
+      idNumber: json['idNumber'] as String? ?? '',
+      mobilePhone: json['mobilePhone'] as String? ?? '',
+      birthDate: json['birthDate'] != null
+          ? UserDto._dateTimeFromJson(json['birthDate'] as String)
+          : DateTime.now(),
+      registrationDate: json['registrationDate'] != null
+          ? UserDto._dateTimeFromJson(json['registrationDate'] as String)
+          : DateTime.now(),
       role: json['role'] as String? ?? 'client',
       avatar: json['avatar'] as String? ?? '',
     );

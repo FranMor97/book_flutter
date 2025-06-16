@@ -40,6 +40,23 @@ class User {
   // To JSON
   Map<String, dynamic> toJson() => _$UserToJson(this);
 
+  factory User.fromDto(UserDto dto) {
+    return User(
+      id: dto.id ?? '',
+      appName: dto.appName ?? 'defaultApp',
+      firstName: dto.firstName ?? 'Unknown',
+      email: dto.email ?? '',
+      lastName1: dto.lastName1 ?? 'Unknown',
+      lastName2: dto.lastName2 ?? '',
+      idNumber: dto.idNumber ?? '',
+      mobilePhone: dto.mobilePhone ?? '',
+      birthDate: dto.birthDate ?? DateTime.now(),
+      registrationDate: dto.registrationDate ?? DateTime.now(),
+      role: dto.role ?? 'client',
+      avatar: dto.avatar ?? '',
+    );
+  }
+
   // Convert User to UserDto
   UserDto toDto() {
     return UserDto(

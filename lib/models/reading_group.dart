@@ -38,7 +38,7 @@ class GroupMember {
     // Manejar el caso en que 'user' venga como objeto
     User? userObj;
     if (json['user'] != null) {
-      userObj = User.fromJson(json['user']);
+      userObj = User.fromDto(UserDto.fromJson(json['user']));
     }
 
     return GroupMember(
@@ -172,7 +172,7 @@ class ReadingGroup {
 
     // Manejar bookId (podría ser un string directo o venir de un objeto)
     String bookIdValue;
-    if (json ['bookId'] is Map) {
+    if (json['bookId'] is Map) {
       bookIdValue = json['bookId']['id'] ?? json['bookId']['_id'];
     } else {
       bookIdValue = json['bookId'];

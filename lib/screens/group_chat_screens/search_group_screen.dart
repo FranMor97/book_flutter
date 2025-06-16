@@ -10,7 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 class SearchGroupsScreen extends StatefulWidget {
-  const SearchGroupsScreen({Key? key}) : super(key: key);
+  const SearchGroupsScreen({super.key});
 
   @override
   State<SearchGroupsScreen> createState() => _SearchGroupsScreenState();

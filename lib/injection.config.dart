@@ -15,6 +15,8 @@ import 'package:injectable/injectable.dart' as _i526;
 import 'package:shared_preferences/shared_preferences.dart' as _i460;
 
 import 'data/bloc/book_detail/book_detail_bloc.dart' as _i21;
+import 'data/bloc/create_book/create_book_bloc.dart' as _i253;
+import 'data/bloc/edito_book/edit_book_bloc.dart' as _i888;
 import 'data/Implementations/api_user_repository.dart' as _i654;
 import 'data/Implementations/dio_auth_repository.dart' as _i506;
 import 'data/Implementations/dio_book_repository.dart' as _i940;
@@ -93,6 +95,10 @@ extension GetItInjectableX on _i174.GetIt {
         _prod,
       },
     );
+    gh.factory<_i253.CreateBookBloc>(() =>
+        _i253.CreateBookBloc(bookRepository: gh<_i438.IBookRepository>()));
+    gh.factory<_i888.EditBookBloc>(
+        () => _i888.EditBookBloc(bookRepository: gh<_i438.IBookRepository>()));
     gh.factory<_i21.BookDetailBloc>(() => _i21.BookDetailBloc(
           bookRepository: gh<_i438.IBookRepository>(),
           bookUserRepository: gh<_i914.IBookUserRepository>(),

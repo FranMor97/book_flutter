@@ -6,22 +6,77 @@ part of 'user.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-User _$UserFromJson(Map<String, dynamic> json) => User(
-      id: json['id'] as String?,
-      appName: json['appName'] as String,
-      firstName: json['firstName'] as String,
-      email: json['email'] as String,
-      lastName1: json['lastName1'] as String,
-      lastName2: json['lastName2'] as String?,
-      idNumber: json['idNumber'] as String,
-      mobilePhone: json['mobilePhone'] as String,
-      birthDate: DateTime.parse(json['birthDate'] as String),
-      registrationDate: json['registrationDate'] == null
-          ? null
-          : DateTime.parse(json['registrationDate'] as String),
-      role: json['role'] as String? ?? 'client',
-      avatar: json['avatar'] as String?,
-    );
+User _$UserFromJson(Map<String, dynamic> json) {
+  // Helper function to safely parse DateTime
+  DateTime parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+
+    try {
+      if (value is String) {
+        return DateTime.parse(value);
+      } else if (value is int) {
+        // Handle timestamp in milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } else if (value is DateTime) {
+        return value;
+      }
+    } catch (e) {
+      // If parsing fails, return current date
+      print('Error parsing date: $e');
+    }
+
+    return DateTime.now();
+  }
+
+  // Helper function to safely parse nullable DateTime
+  DateTime? parseNullableDateTime(dynamic value) {
+    if (value == null) return null;
+
+    try {
+      if (value is String) {
+        return DateTime.parse(value);
+      } else if (value is int) {
+        // Handle timestamp in milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      } else if (value is DateTime) {
+        return value;
+      }
+    } catch (e) {
+      // If parsing fails, return null
+      print('Error parsing date: $e');
+    }
+
+    return null;
+  }
+
+  // Helper function to safely get string value
+  String? getStringOrNull(dynamic value) {
+    if (value == null) return null;
+    return value.toString();
+  }
+
+  // Helper function to safely get required string with default
+  String getStringWithDefault(dynamic value, String defaultValue) {
+    if (value == null) return defaultValue;
+    final stringValue = value.toString();
+    return stringValue.isEmpty ? defaultValue : stringValue;
+  }
+
+  return User(
+    id: getStringOrNull(json['id'] ?? json['_id']), // Also check for _id field
+    appName: getStringWithDefault(json['appName'], ''),
+    firstName: getStringWithDefault(json['firstName'], ''),
+    email: getStringWithDefault(json['email'], ''),
+    lastName1: getStringWithDefault(json['lastName1'], ''),
+    lastName2: getStringOrNull(json['lastName2']),
+    idNumber: getStringWithDefault(json['idNumber'], ''),
+    mobilePhone: getStringWithDefault(json['mobilePhone'], ''),
+    birthDate: parseDateTime(json['birthDate']),
+    registrationDate: parseNullableDateTime(json['registrationDate']),
+    role: getStringWithDefault(json['role'], 'client'),
+    avatar: getStringOrNull(json['avatar']),
+  );
+}
 
 Map<String, dynamic> _$UserToJson(User instance) => <String, dynamic>{
       'id': instance.id,
