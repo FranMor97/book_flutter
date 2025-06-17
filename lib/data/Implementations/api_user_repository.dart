@@ -6,6 +6,8 @@ import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../models/cache_manager.dart';
+
 /// Implementación del repositorio de usuarios con API + caché local
 @LazySingleton(as: IUserRepository, env: [Environment.dev, Environment.prod])
 class ApiUserRepository implements IUserRepository {
@@ -340,60 +342,4 @@ class ApiUserRepository implements IUserRepository {
   }
 }
 
-class CacheManager {
-  static const String _userCacheKey = 'user_data';
-
-  final CacheStore _cacheStore;
-
-  CacheManager(this._cacheStore);
-
-  /// Guarda los datos del usuario en caché
-  Future<void> saveUser(UserDto user) async {
-    await _cacheStore.put(_userCacheKey, json.encode(user.toJson()));
-  }
-
-  /// Recupera el usuario desde la caché
-  Future<UserDto?> getUser() async {
-    final cachedData = await _cacheStore.get(_userCacheKey);
-    if (cachedData != null) {
-      return UserDto.fromJson(json.decode(cachedData));
-    }
-    return null;
-  }
-
-  /// Elimina el usuario de la caché
-  Future<void> clearUser() async {
-    await _cacheStore.delete(_userCacheKey);
-  }
-}
-
-/// Interfaz para el almacenamiento de caché
-abstract class CacheStore {
-  Future<void> put(String key, String value);
-
-  Future<String?> get(String key);
-
-  Future<void> delete(String key);
-}
-
 /// Implementación de caché usando SharedPreferences
-class SharedPrefsCacheStore implements CacheStore {
-  final SharedPreferences _prefs;
-
-  SharedPrefsCacheStore(this._prefs);
-
-  @override
-  Future<void> put(String key, String value) async {
-    await _prefs.setString(key, value);
-  }
-
-  @override
-  Future<String?> get(String key) async {
-    return _prefs.getString(key);
-  }
-
-  @override
-  Future<void> delete(String key) async {
-    await _prefs.remove(key);
-  }
-}

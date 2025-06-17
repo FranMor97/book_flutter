@@ -1,3 +1,4 @@
+import 'package:book_app_f/data/Implementations/api_user_repository.dart';
 import 'package:book_app_f/data/bloc/user_library/user_library_bloc.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart'
     show IAuthRepository;

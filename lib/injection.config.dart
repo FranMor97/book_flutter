@@ -32,6 +32,8 @@ import 'data/repositories/user_repository.dart' as _i443;
 import 'data/services/reading_group_socket_service.dart' as _i768;
 import 'data/services/socket_service.dart' as _i582;
 import 'injection/app_module.dart' as _i984;
+import 'models/cache_manager.dart' as _i783;
+import 'models/cache_store.dart' as _i205;
 
 const String _dev = 'dev';
 const String _prod = 'prod';
@@ -56,7 +58,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i582.SocketService>(() => appModule.socketService());
     gh.lazySingleton<_i361.Dio>(
         () => appModule.dio(gh<_i460.SharedPreferences>()));
-    gh.lazySingleton<_i654.CacheStore>(
+    gh.lazySingleton<_i205.CacheStore>(
         () => appModule.cacheStore(gh<_i460.SharedPreferences>()));
     gh.factory<String>(
       () => appModule.devApiBaseUrl,
@@ -75,6 +77,8 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i593.IAuthRepository>(
         () => _i506.DioAuthRepository(gh<_i460.SharedPreferences>()));
+    gh.lazySingleton<_i783.CacheManager>(
+        () => appModule.cacheManager(gh<_i205.CacheStore>()));
     gh.lazySingleton<_i233.IFriendshipRepository>(
       () => _i274.DioFriendshipRepository(
         dio: gh<_i361.Dio>(),
@@ -111,6 +115,18 @@ extension GetItInjectableX on _i174.GetIt {
       instanceName: 'apiBaseUrl',
       registerFor: {_test},
     );
+    gh.lazySingleton<_i443.IUserRepository>(
+      () => _i654.ApiUserRepository(
+        dio: gh<_i361.Dio>(),
+        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
+        cacheManager: gh<_i783.CacheManager>(),
+        prefs: gh<_i460.SharedPreferences>(),
+      ),
+      registerFor: {
+        _dev,
+        _prod,
+      },
+    );
     gh.lazySingleton<_i228.IReadingGroupRepository>(
       () => _i936.DioReadingGroupRepository(
         dio: gh<_i361.Dio>(),
@@ -125,20 +141,6 @@ extension GetItInjectableX on _i174.GetIt {
       () => appModule.apiBaseUrl,
       instanceName: 'apiBaseUrl',
       registerFor: {_prod},
-    );
-    gh.lazySingleton<_i654.CacheManager>(
-        () => appModule.cacheManager(gh<_i654.CacheStore>()));
-    gh.lazySingleton<_i443.IUserRepository>(
-      () => _i654.ApiUserRepository(
-        dio: gh<_i361.Dio>(),
-        baseUrl: gh<String>(instanceName: 'apiBaseUrl'),
-        cacheManager: gh<_i654.CacheManager>(),
-        prefs: gh<_i460.SharedPreferences>(),
-      ),
-      registerFor: {
-        _dev,
-        _prod,
-      },
     );
     return this;
   }

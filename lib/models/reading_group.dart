@@ -228,6 +228,36 @@ class ReadingGroup {
     };
   }
 
+  ReadingGroup copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? bookId,
+    String? creatorId,
+    List<GroupMember>? members,
+    bool? isPrivate,
+    ReadingGoal? readingGoal,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    BookDto? book,
+    UserDto? creator,
+  }) {
+    return ReadingGroup(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      bookId: bookId ?? this.bookId,
+      creatorId: creatorId ?? this.creatorId,
+      members: members ?? this.members,
+      isPrivate: isPrivate ?? this.isPrivate,
+      readingGoal: readingGoal ?? this.readingGoal,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      book: book ?? this.book,
+      creator: creator ?? this.creator,
+    );
+  }
+
   // Helper methods for DateTime conversion
   static DateTime _dateTimeFromJson(String date) => DateTime.parse(date);
   static String _dateTimeToJson(DateTime date) => date.toIso8601String();

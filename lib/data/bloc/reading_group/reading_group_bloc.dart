@@ -124,7 +124,20 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
 
     try {
       final groups = await readingGroupRepository.getUserGroups();
-      emit(ReadingGroupUserGroupsLoaded(groups: groups));
+      final List<ReadingGroup> finalList = [];
+      for (var group in groups) {
+        ReadingGroup groupF =
+            await readingGroupRepository.getGroupById(group.id);
+        UserDto? creator = await userRepository.getUserById(groupF.creatorId);
+        BookDto? book = await bookRepository.getBookById(groupF.bookId);
+        group = group.copyWithRelatedData(
+          creator: creator,
+          book: book,
+        );
+        finalList.add(group);
+      }
+
+      emit(ReadingGroupUserGroupsLoaded(groups: finalList));
     } catch (e) {
       emit(ReadingGroupError(message: e.toString()));
     }

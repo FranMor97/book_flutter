@@ -1,21 +1,50 @@
 // lib/screens/reading_groups/reading_groups_screen.dart
-import 'package:book_app_f/data/repositories/auth_repository.dart';
+import 'package:book_app_f/data/implementations/api_user_repository.dart';
+import 'package:book_app_f/models/cache_manager.dart';
 import 'package:book_app_f/models/dtos/book_dto.dart';
+import 'package:book_app_f/models/dtos/user_dto.dart';
 import 'package:book_app_f/routes/book_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:book_app_f/data/bloc/reading_group/reading_group_bloc.dart';
 import 'package:book_app_f/injection.dart';
 import 'package:book_app_f/models/reading_group.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/repositories/book_repository.dart';
-
-class ReadingGroupsScreen extends StatelessWidget {
+class ReadingGroupsScreen extends StatefulWidget {
   const ReadingGroupsScreen({super.key});
 
   @override
+  State<ReadingGroupsScreen> createState() => _ReadingGroupsScreenState();
+}
+
+class _ReadingGroupsScreenState extends State<ReadingGroupsScreen> {
+  UserDto? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final cacheManager = GetIt.instance<CacheManager>();
+      final user = await cacheManager.getUser();
+      if (mounted) {
+        setState(() {
+          _currentUser = user;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading current user: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final readingGroupBloc = context.read<ReadingGroupBloc>();
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0F),
       appBar: AppBar(
@@ -40,7 +69,7 @@ class ReadingGroupsScreen extends StatelessWidget {
           }
 
           if (state is ReadingGroupUserGroupsLoaded) {
-            return _buildGroupsList(context, state.groups);
+            return _buildGroupsList(context, state.groups, readingGroupBloc);
           }
 
           if (state is ReadingGroupError) {
@@ -85,7 +114,8 @@ class ReadingGroupsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupsList(BuildContext context, List<ReadingGroup> groups) {
+  Widget _buildGroupsList(BuildContext context, List<ReadingGroup> groups,
+      ReadingGroupBloc readingGroupBloc) {
     if (groups.isEmpty) {
       return Center(
         child: Column(
@@ -215,7 +245,7 @@ class ReadingGroupsScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            // lib/screens/reading_groups/reading_groups_screen.dart (continuación)
+
                             // Autor
                             Text(
                               book?.authors.isNotEmpty == true
@@ -315,7 +345,8 @@ class ReadingGroupsScreen extends StatelessWidget {
                       // Botón de chat
                       ElevatedButton.icon(
                         onPressed: () {
-                          context.goNamed(AppRouter.groupChat);
+                          context.goNamed(AppRouter.groupChat,
+                              pathParameters: {'id': group.id});
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF8B5CF6),
@@ -338,11 +369,22 @@ class ReadingGroupsScreen extends StatelessWidget {
   }
 
   String _getProgressText(ReadingGroup group, BookDto? book) {
-    // Obtener el miembro actual
+    // Usar el usuario actual en caché en lugar del AuthRepository
+    final currentUserId = _currentUser?.id;
+
+    if (currentUserId == null) {
+      return 'Progreso: 0 páginas';
+    }
+
+    // Obtener el miembro actual usando el ID del usuario en caché
     final currentMember = group.members.firstWhere(
-      (member) => member.userId == getIt<IAuthRepository>().getCurrentUserId(),
+      (member) => member.userId == currentUserId,
       orElse: () => group.members.first,
     );
+
+    if (currentMember == null) {
+      return 'Progreso: 0 páginas';
+    }
 
     if (book?.pageCount == null || book!.pageCount! <= 0) {
       return 'Progreso: ${currentMember.currentPage} páginas';
@@ -354,14 +396,28 @@ class ReadingGroupsScreen extends StatelessWidget {
   }
 
   Widget _buildProgressBar(ReadingGroup group, int totalPages) {
-    // Obtener el miembro actual
+    // Usar el usuario actual en caché
+    final currentUserId = _currentUser?.id;
+
+    if (currentUserId == null) {
+      return Container(
+        height: 8,
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(4),
+        ),
+      );
+    }
+
+    // Obtener el miembro actual usando el ID del usuario en caché
     final currentMember = group.members.firstWhere(
-      (member) => member.userId == getIt<IAuthRepository>().getCurrentUserId(),
+      (member) => member.userId == currentUserId,
       orElse: () => group.members.first,
     );
 
-    final progress =
-        totalPages > 0 ? currentMember.currentPage / totalPages : 0.0;
+    final progress = currentMember != null && totalPages > 0
+        ? currentMember.currentPage / totalPages
+        : 0.0;
 
     return Stack(
       children: [

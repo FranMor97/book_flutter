@@ -1,8 +1,12 @@
 import 'package:book_app_f/data/Implementations/api_user_repository.dart';
 import 'package:book_app_f/data/Implementations/dio_auth_repository.dart';
+import 'package:book_app_f/data/implementations/api_user_repository.dart';
 import 'package:book_app_f/data/repositories/auth_repository.dart';
 import 'package:book_app_f/data/services/reading_group_socket_service.dart';
 import 'package:book_app_f/data/services/socket_service.dart';
+import 'package:book_app_f/models/cache_manager.dart';
+import 'package:book_app_f/models/cache_store.dart';
+import 'package:book_app_f/models/shared_preference_cachestore.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
@@ -51,7 +55,7 @@ abstract class AppModule {
   /// Proporciona la URL base para la API en producción
   @Named("apiBaseUrl")
   @prod
-  String get apiBaseUrl => 'http://192.168.1.14:3000/api';
+  String get apiBaseUrl => 'http://192.168.1.20:3000/api';
 
   //'https://book-server-jc53.onrender.com/api'
   //192.168.213.173
