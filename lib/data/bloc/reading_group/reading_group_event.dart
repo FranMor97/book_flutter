@@ -26,6 +26,7 @@ class ReadingGroupCreate extends ReadingGroupEvent {
   final String bookId;
   final bool isPrivate;
   final ReadingGoal? readingGoal;
+  final List<String>? memberIds; // Nuevo campo para los IDs de miembros
 
   const ReadingGroupCreate({
     required this.name,
@@ -33,11 +34,12 @@ class ReadingGroupCreate extends ReadingGroupEvent {
     required this.bookId,
     this.isPrivate = false,
     this.readingGoal,
+    this.memberIds,
   });
 
   @override
   List<Object?> get props =>
-      [name, description, bookId, isPrivate, readingGoal];
+      [name, description, bookId, isPrivate, readingGoal, memberIds];
 }
 
 class ReadingGroupUpdate extends ReadingGroupEvent {

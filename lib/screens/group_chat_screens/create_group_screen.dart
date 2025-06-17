@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../data/bloc/reading_group/reading_group_bloc.dart';
+import '../../data/bloc/friendship/friendship_bloc.dart';
 import '../../models/reading_group.dart';
 import '../../models/dtos/book_dto.dart';
+import '../../models/user.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});
@@ -25,7 +27,18 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   DateTime? _targetDate;
   int? _pagesPerDay;
 
+  // Lista de amigos seleccionados para añadir
+  final List<User> _selectedFriends = [];
+  List<User> _availableFriends = [];
+
   final _dateFormat = DateFormat('dd/MM/yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    // Cargar lista de amigos
+    context.read<FriendshipBloc>().add(FriendshipLoadFriends());
+  }
 
   @override
   void dispose() {
@@ -73,10 +86,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       ReadingGoal? readingGoal;
       if (_targetDate != null || _pagesPerDay != null) {
         readingGoal = ReadingGoal(
-          targetFinishDate: _targetDate,
           pagesPerDay: _pagesPerDay,
+          targetFinishDate: _targetDate,
         );
       }
+
+      // Obtener los IDs de los amigos seleccionados
+      final memberIds = _selectedFriends
+          .map((friend) => friend.id ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
 
       context.read<ReadingGroupBloc>().add(
             ReadingGroupCreate(
@@ -85,8 +104,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ? _descriptionController.text
                   : null,
               bookId: _selectedBook!.id!,
-              isPrivate: false, //_isPrivate,
+              isPrivate: _isPrivate,
               readingGoal: readingGoal,
+              memberIds:
+                  _isPrivate ? memberIds : null, // Solo enviar si es privado
             ),
           );
     }
@@ -103,25 +124,38 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<ReadingGroupBloc, ReadingGroupState>(
-      listener: (context, state) {
-        if (state is ReadingGroupCreated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Grupo creado con éxito'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          context.pop();
-        } else if (state is ReadingGroupError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error al crear el grupo: ${state.message}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<ReadingGroupBloc, ReadingGroupState>(
+          listener: (context, state) {
+            if (state is ReadingGroupCreated) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Grupo creado con éxito'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              context.pop();
+            } else if (state is ReadingGroupError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error al crear el grupo: ${state.message}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+        ),
+        BlocListener<FriendshipBloc, FriendshipState>(
+          listener: (context, state) {
+            if (state is FriendshipFriendsLoaded) {
+              setState(() {
+                _availableFriends = state.friends;
+              });
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         backgroundColor: const Color(0xFF0A0A0F),
         appBar: AppBar(
@@ -132,7 +166,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           backgroundColor: const Color(0xFF1A1A2E),
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
-            // Botón de home
             IconButton(
               icon: const Icon(
                 Icons.home,
@@ -145,7 +178,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               tooltip: 'Ir al inicio',
             ),
             const SizedBox(width: 8),
-            // Botón de guardar/loading
             BlocBuilder<ReadingGroupBloc, ReadingGroupState>(
               builder: (context, state) {
                 if (state is ReadingGroupActionInProgress) {
@@ -221,26 +253,190 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 const SizedBox(height: 8),
                 _buildBookSelector(context),
                 const SizedBox(height: 24),
-                // Text(
-                //   'Configuración del grupo',
-                //   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                //         color: Colors.white,
-                //         fontWeight: FontWeight.bold,
-                //       ),
-                // ),
-                // const SizedBox(height: 8),
-                // SwitchListTile(
-                //   title: const Text('Grupo privado',
-                //       style: TextStyle(color: Colors.white)),
-                //   subtitle: const Text('Solo pueden unirse miembros invitados',
-                //       style: TextStyle(color: Colors.grey, fontSize: 12)),
-                //   value: _isPrivate,
-                //   onChanged: (value) => setState(() => _isPrivate = value),
-                //   activeColor: const Color(0xFF8B5CF6),
-                //   tileColor: const Color(0xFF1A1A2E),
-                //   shape: RoundedRectangleBorder(
-                //       borderRadius: BorderRadius.circular(8)),
-                // ),
+                Text(
+                  'Configuración del grupo',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: const Text('Grupo privado',
+                      style: TextStyle(color: Colors.white)),
+                  subtitle: const Text(
+                      'Puedes añadir participantes específicos',
+                      style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  value: _isPrivate,
+                  onChanged: (value) {
+                    setState(() {
+                      _isPrivate = value;
+                      if (!value) {
+                        // Si se desactiva el grupo privado, limpiar selección
+                        _selectedFriends.clear();
+                      }
+                    });
+                  },
+                  activeColor: const Color(0xFF8B5CF6),
+                  tileColor: const Color(0xFF1A1A2E),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+
+                // Mostrar selector de amigos si es grupo privado
+                if (_isPrivate) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Participantes del grupo',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_selectedFriends.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A2E),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                            color: const Color(0xFF8B5CF6), width: 1),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${_selectedFriends.length} participante(s) seleccionado(s)',
+                            style: const TextStyle(
+                                color: Color(0xFF8B5CF6), fontSize: 14),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _selectedFriends
+                                .map((friend) => Chip(
+                                      backgroundColor: const Color(0xFF8B5CF6)
+                                          .withOpacity(0.2),
+                                      deleteIconColor: Colors.white70,
+                                      labelStyle:
+                                          const TextStyle(color: Colors.white),
+                                      label: Text(
+                                          '${friend.firstName} ${friend.lastName1}'),
+                                      onDeleted: () {
+                                        setState(() {
+                                          _selectedFriends.remove(friend);
+                                        });
+                                      },
+                                    ))
+                                .toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A2E),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    ),
+                    child: BlocBuilder<FriendshipBloc, FriendshipState>(
+                      builder: (context, state) {
+                        if (state is FriendshipLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(
+                                  color: Color(0xFF8B5CF6)),
+                            ),
+                          );
+                        }
+
+                        if (_availableFriends.isEmpty) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text(
+                                'No tienes amigos para añadir',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _availableFriends.length,
+                          itemBuilder: (context, index) {
+                            final friend = _availableFriends[index];
+                            final isSelected =
+                                _selectedFriends.contains(friend);
+
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isSelected
+                                    ? const Color(0xFF8B5CF6)
+                                    : Colors.grey[800],
+                                backgroundImage: friend.avatar != null &&
+                                        friend.avatar!.isNotEmpty
+                                    ? NetworkImage(friend.avatar!)
+                                    : null,
+                                child: friend.avatar == null ||
+                                        friend.avatar!.isEmpty
+                                    ? Text(
+                                        friend.firstName[0].toUpperCase(),
+                                        style: const TextStyle(
+                                            color: Colors.white),
+                                      )
+                                    : null,
+                              ),
+                              title: Text(
+                                '${friend.firstName} ${friend.lastName1}',
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? const Color(0xFF8B5CF6)
+                                      : Colors.white,
+                                ),
+                              ),
+                              subtitle: Text(
+                                friend.email,
+                                style: const TextStyle(
+                                    color: Colors.grey, fontSize: 12),
+                              ),
+                              trailing: Checkbox(
+                                value: isSelected,
+                                onChanged: (bool? value) {
+                                  setState(() {
+                                    if (value ?? false) {
+                                      _selectedFriends.add(friend);
+                                    } else {
+                                      _selectedFriends.remove(friend);
+                                    }
+                                  });
+                                },
+                                activeColor: const Color(0xFF8B5CF6),
+                                checkColor: Colors.white,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    _selectedFriends.remove(friend);
+                                  } else {
+                                    _selectedFriends.add(friend);
+                                  }
+                                });
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
                 Text(
                   'Objetivos de lectura (opcional)',

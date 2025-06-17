@@ -195,6 +195,7 @@ class ReadingGroupBloc extends Bloc<ReadingGroupEvent, ReadingGroupState> {
         bookId: event.bookId,
         isPrivate: event.isPrivate,
         readingGoal: event.readingGoal,
+        memberIds: event.memberIds, // Pasar los memberIds
       );
 
       emit(ReadingGroupCreated(group: group));

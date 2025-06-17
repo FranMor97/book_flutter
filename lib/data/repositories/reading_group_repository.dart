@@ -13,6 +13,7 @@ abstract class IReadingGroupRepository {
     required String bookId,
     bool isPrivate = false,
     ReadingGoal? readingGoal,
+    List<String>? memberIds, // Nuevo parámetro
   });
   Future<ReadingGroup> updateGroup({
     required String groupId,

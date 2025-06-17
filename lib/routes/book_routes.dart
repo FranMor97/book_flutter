@@ -327,13 +327,22 @@ class AppRouter {
       GoRoute(
         name: createGroupScreen,
         path: createGroupScreenPath,
-        builder: (context, state) => BlocProvider(
-          create: (context) => ReadingGroupBloc(
-            readingGroupRepository: getIt<IReadingGroupRepository>(),
-            userRepository: getIt<IUserRepository>(),
-            bookRepository: getIt<IBookRepository>(),
-            socketService: getIt<SocketService>(), // Añadir SocketService
-          ),
+        builder: (context, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider<ReadingGroupBloc>(
+              create: (context) => ReadingGroupBloc(
+                readingGroupRepository: getIt<IReadingGroupRepository>(),
+                userRepository: getIt<IUserRepository>(),
+                bookRepository: getIt<IBookRepository>(),
+                socketService: getIt<SocketService>(),
+              ),
+            ),
+            BlocProvider<FriendshipBloc>(
+              create: (context) => FriendshipBloc(
+                friendshipRepository: getIt<IFriendshipRepository>(),
+              ),
+            ),
+          ],
           child: const CreateGroupScreen(),
         ),
       ),

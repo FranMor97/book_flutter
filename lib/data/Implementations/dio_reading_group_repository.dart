@@ -67,6 +67,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
     required String bookId,
     bool isPrivate = false,
     ReadingGoal? readingGoal,
+    List<String>? memberIds,
   }) async {
     try {
       final data = {
@@ -75,6 +76,7 @@ class DioReadingGroupRepository implements IReadingGroupRepository {
         'bookId': bookId,
         'isPrivate': isPrivate,
         'readingGoal': readingGoal?.toJson(),
+        'memberIds': memberIds, // Añadir los memberIds al request
       };
 
       final response = await _dio.post(
