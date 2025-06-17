@@ -1,4 +1,6 @@
 import 'package:bloc/bloc.dart';
+import 'package:book_app_f/data/services/socket_service.dart';
+import 'package:book_app_f/injection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
@@ -25,6 +27,23 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
     try {
       // Llamar al repositorio para registrar al usuario
       final user = await userRepository.register(event.userDto);
+
+      // CAMBIO MÍNIMO: Reinicializar socket después del registro exitoso
+      try {
+        final socketService = getIt<SocketService>();
+        print('Register: Reinicializando socket después del registro...');
+
+        // Esperar un poco más para que el token se guarde correctamente
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        final socketUrl = getIt<String>(instanceName: 'socketUrl');
+        await socketService.initSocket(socketUrl);
+
+        print('Register: Socket reinicializado exitosamente');
+      } catch (e) {
+        print('Register: Error al reinicializar socket: $e');
+        // No fallar el registro por problemas de socket
+      }
 
       emit(RegisterSuccess(user));
     } catch (e) {
