@@ -17,6 +17,7 @@ import 'package:book_app_f/data/services/socket_service.dart';
 import 'package:book_app_f/screens/admin_screens/admin_books/edit_book_screen.dart';
 import 'package:book_app_f/screens/admin_screens/admin_home-screen.dart';
 import 'package:book_app_f/screens/admin_screens/admin_users/admin_users_screen.dart';
+import 'package:book_app_f/screens/admin_screens/admin_users/registation_screen.dart';
 import 'package:book_app_f/screens/bibliotheque/user_library_screen.dart';
 import 'package:book_app_f/screens/book_comments_screen.dart';
 import 'package:book_app_f/screens/group_chat_screens/create_group_screen.dart';
@@ -77,6 +78,7 @@ class AppRouter {
   static const String bookEdit = 'book-edit';
   static const String adminBooks = 'book-comments';
   static const String createBook = 'create-book';
+  static const String adminRegister = 'admin-register'; // Ruta principal
 
   // Definición de las rutas
   static const String splashPath = '/splash';
@@ -101,6 +103,7 @@ class AppRouter {
   static const String bookEditPath = '/book-edit/:id';
   static const String adminBooksPath = '/book-comments/:id';
   static const String createBookPath = '/create-book';
+  static const String adminRegisterPath = '/admin-register';
 
   final _router = GoRouter(
     initialLocation: splashPath,
@@ -130,6 +133,16 @@ class AppRouter {
             userRepository: getIt<IUserRepository>(),
           ),
           child: const RegisterScreen(),
+        ),
+      ),
+      GoRoute(
+        name: adminRegister,
+        path: adminRegisterPath,
+        builder: (context, state) => BlocProvider(
+          create: (context) => RegisterBloc(
+            userRepository: getIt<IUserRepository>(),
+          ),
+          child: const AdminRegisterScreen(),
         ),
       ),
       // Añadir la ruta 'home' que falta

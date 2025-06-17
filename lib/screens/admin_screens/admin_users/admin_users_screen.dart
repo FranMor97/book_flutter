@@ -50,7 +50,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return BlocListener<AdminUsersBloc, AdminUsersState>(
       listener: (context, state) {
         if (state is AdminUsersNavigatingToCreate) {
-          context.goNamed(AppRouter.register);
+          context.goNamed(AppRouter.adminRegister);
         } else if (state is AdminUsersNavigatingToEdit) {
           context.pushNamed(AppRouter.adminUserProfile,
               pathParameters: {'id': state.user.id!});
